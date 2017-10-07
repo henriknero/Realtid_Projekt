@@ -12,6 +12,10 @@ public:
     FileSystem();
     ~FileSystem();
 
+    /*
+    char* readHeader(Block* block);
+    */
+
     /* These API functions need to be implemented
 	   You are free to specify parameter lists and return values
     */

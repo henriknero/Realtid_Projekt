@@ -23,7 +23,7 @@ int main(void) {
 	std::string userCommand, commandArr[MAXCOMMANDS];
 	std::string user = "user@DV1492";    // Change this if you want another user to be displayed
 	std::string currentDir = "/";    // current directory, used for output
-  FileSystem fileSystem;
+  FileSystem *fileSystem;
     bool bRun = true;
 
     do {
@@ -40,7 +40,7 @@ int main(void) {
 				bRun = quit();
                 break;
             case 1: // format
-                fileSystem = FileSystem();
+                fileSystem = new FileSystem();
                 break;
             case 2: // ls
                 std::cout << "Listing directory" << std::endl;
@@ -75,7 +75,7 @@ int main(void) {
             }
         }
     } while (bRun == true);
-
+    delete fileSystem;
     return 0;
 }
 

@@ -10,6 +10,7 @@ Block::Block(int size) {
         this->nrOfElements = 512;
 
     this->block = new char[this->nrOfElements];
+    this->block[1] = 0; //Element nummer 1 representerar hur mycket av blocket som används
 
     // Sets everything to 0
     this->reset();
@@ -57,6 +58,16 @@ Block Block::readBlock() const {
     return Block(*this);
 }
 
+char* Block::readHeader() const {
+  char* header[10];
+  for (int i = 0; i < 10; i++){
+    header[i] = &this->block[i];
+    //header[i] = i
+  }
+  return *header;
+}
+
+
 int Block::writeBlock(const std::string &strBlock) {
     int output = -2;    // Assume out of range
     if (strBlock.size() == (unsigned long)this->nrOfElements) {
@@ -96,8 +107,3 @@ std::string Block::toString() const {
         output += this->block[i];
     return output;
 }
-
-
-
-
-
