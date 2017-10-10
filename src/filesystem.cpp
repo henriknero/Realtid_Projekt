@@ -3,6 +3,17 @@
 
 //std::string initiation = ''
 
+std::string FileSystem::getFileName(int blockIndex){
+  std::string temp = this->mMemblockDevice.readBlock(blockIndex).toString();
+  std::string output = "";
+  for (size_t i = 3; i < 11; i++) {
+    if(temp[i] != '\0'){
+      output += temp[i];
+    }
+  }
+  return output;
+}
+
 FileSystem::FileSystem() {
 
   this->mMemblockDevice = MemBlockDevice();
@@ -74,6 +85,24 @@ int FileSystem::createFile(std::string fileName, int privilege){
   return returnValue;
 }
 
+//HÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄR
+/*
+void Filesystem::printCurrentPath(){
+  int start;
+  int blockIndex;
+  std::string output = "";
+  std::string temp = this->currentDir.toString();
+  blockIndex = int(temp[11]);
+  start = blockIndex;
+
+  while(temp[11] !== 0){
+    output += this->getFileName(blockIndex);
+    blockIndex = //Här slutade jag kek lel vet inte om det är fel
+  }
+
+}
+*/
+
 void FileSystem::listDir(){
   std::cout << "Type\tName\tPermissions\tSize" << std::endl;
   std::string temp = currentDir.toString();
@@ -86,12 +115,19 @@ void FileSystem::listDir(){
     else{
       output += "DIR\t";
     }
+
+
+    /*
     for (size_t j = 3; j < 11; j++) {
       if(temp_header[j] != '\0'){
         output += temp_header[j];
       }
     }
+    */
+    output += this->getFileName(temp[i]);
     output +="\t";
+
+
     if(temp_header[2] == 3){
       output += "rw";
     }
