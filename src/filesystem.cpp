@@ -143,6 +143,11 @@ int FileSystem::createFolder(std::string name, int privilege){
   }
   return returnValue;
 }
+
+int FileSystem::changeDir(std::string path){
+  path.substr(path.find("/"));
+  return 0;
+}
 /* Please insert your code
 char* Filesystem::readHeader(Block* block){
   char* temp_header = new char[10];

@@ -44,7 +44,7 @@ public:
 
     /* This function will get all the files and folders in the specified folder */
     void listDir();
-
+    int changeDir(std::string path);
     /* Add your own member-functions if needed */
 };
 

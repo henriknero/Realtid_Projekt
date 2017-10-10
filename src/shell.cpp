@@ -67,6 +67,7 @@ int main(void) {
                 fileSystem->createFolder(commandArr[1]);
                 break;
             case 12: // cd
+                fileSystem->changeDir(commandArr[1]);
                 break;
             case 13: // pwd
                 break;
