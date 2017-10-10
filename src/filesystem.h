@@ -31,7 +31,7 @@ public:
     int write(std::string);
 
     /* Creates a folder in the filesystem */
-    // createFolderi(...);
+    int createFolder(std::string name, int privilege = 3);
 
     /* Removes a file in the filesystem */
     // removeFile(...);

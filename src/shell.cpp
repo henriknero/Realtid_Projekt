@@ -64,6 +64,7 @@ int main(void) {
             case 10: // mv
                 break;
             case 11: // mkdir
+                fileSystem->createFolder(commandArr[1]);
                 break;
             case 12: // cd
                 break;
