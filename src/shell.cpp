@@ -44,8 +44,10 @@ int main(void) {
                 break;
             case 2: // ls
                 std::cout << "Listing directory" << std::endl;
+                fileSystem->listDir();
                 break;
             case 3: // create
+                fileSystem->createFile(commandArr[1]);
                 break;
             case 4: // cat
                 break;

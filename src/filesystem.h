@@ -7,7 +7,12 @@ class FileSystem
 {
 private:
     MemBlockDevice mMemblockDevice;
+    Block currentDir;
+    bool bitmap[250] = {false};
     // Here you can add your own data structures
+    bool currentDir_is_full(){
+      return (this->currentDir.toString()[1] > 499);
+    }
 public:
     FileSystem();
     ~FileSystem();
@@ -21,7 +26,9 @@ public:
     */
 
     /* This function creates a file in the filesystem */
-    // createFile(...)
+    int createFile(std::string fileName, int privilege = 3);
+
+    int write(std::string);
 
     /* Creates a folder in the filesystem */
     // createFolderi(...);
@@ -36,7 +43,7 @@ public:
     // goToFolder(...);
 
     /* This function will get all the files and folders in the specified folder */
-    // listDir(...);
+    void listDir();
 
     /* Add your own member-functions if needed */
 };

@@ -59,8 +59,8 @@ Block Block::readBlock() const {
 }
 
 char* Block::readHeader() const {
-  char* header[10];
-  for (int i = 0; i < 10; i++){
+  char* header[11];
+  for (int i = 0; i < 11; i++){
     header[i] = &this->block[i];
     //header[i] = i
   }
