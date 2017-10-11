@@ -181,7 +181,11 @@ int FileSystem::createFolder(std::string name, int privilege){
 }
 
 int FileSystem::changeDir(std::string path){
-  path.substr(path.find("/"));
+  if(path.find("/") != std::string::npos){
+    path.find("/")
+  }
+  //path.substr(path.find("/"));
+
   return 0;
 }
 /* Please insert your code
