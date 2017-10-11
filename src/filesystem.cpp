@@ -14,17 +14,28 @@ std::string FileSystem::getFileName(int blockIndex){
   return output;
 }
 
-bool FileSystem::name_is_available(std::string name){
-  bool returnValue = true;
+int FileSystem::getIndex(std::string name){
+  int returnValue = -1;
   std::string temp = this->currentDir.toString();
   for(int i = 13; i < temp[1]+11; i++){
     if(this->getFileName(temp[i]) == name){
-      returnValue = false;
+      returnValue = i;
       break;
     }
   }
   return returnValue;
 }
+
+
+std::string FileSystem::getHeader(int blockIndex){
+  std::string temp = this->mMemblockDevice.readBlock(blockIndex).toString();
+  std::string output = "";
+  for (size_t i = 0; i < 11; i++) {
+    output += temp[i];
+  }
+  return output;
+}
+
 
 FileSystem::FileSystem() {
 
@@ -54,7 +65,7 @@ FileSystem::~FileSystem() {
 
 int FileSystem::createFile(std::string fileName, int privilege){
   int returnValue;
-  if ((!currentDir_is_full()) && (name_is_available(fileName))) {
+  if ((!currentDir_is_full()) && (getIndex(fileName) == -1)) {
     returnValue = -3; //-3 = inappropriate filename length, 1 = successfully written to hdd
     int blockIndex = -1;
     for (int i = 1; i < 250; i++) {
@@ -68,6 +79,7 @@ int FileSystem::createFile(std::string fileName, int privilege){
       temp[0] = 1;
       temp[1] = 0;
       temp[2] = privilege;
+      temp[11] = 0;
       for (int i = 3; i < int(fileName.length()) + 3; i++) {
         temp[i] = fileName[i-3];
       }
@@ -90,7 +102,7 @@ int FileSystem::createFile(std::string fileName, int privilege){
 
 int FileSystem::createFolder(std::string name, int privilege){
   int returnValue;
-  if((!currentDir_is_full()) && (name_is_available(name))){
+  if((!currentDir_is_full()) && (getIndex(name) == -1)){
     returnValue = -3; //-3 = inappropriate filename length, 1 = successfully written to hdd
     int blockIndex = -1;
     for (int i = 1; i < 250; i++) {
@@ -127,8 +139,19 @@ int FileSystem::createFolder(std::string name, int privilege){
 }
 
 
-//HÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄR
-
+//inte klar, fuckar ur
+int FileSystem::removeFile(std::string fileName){
+  std::string temp = this->currentDir.toString();
+  int directoryIndex_ofFile = getIndex(fileName);
+  if (directoryIndex_ofFile != -1){
+    //temp[1] är mappens nrOf
+    int index_of_last_element = 13 + (temp[1]-2);
+    temp[directoryIndex_ofFile] = index_of_last_element;
+    temp[-1]--;
+    //
+  }
+  return directoryIndex_ofFile;
+}
 
 void FileSystem::printCurrentPath(){
   //int start;
@@ -191,9 +214,26 @@ void FileSystem::listDir(){
 
 
 int FileSystem::changeDir(std::string path){
-  if(path.find("/") != std::string::npos){
-    path.find("/");
+  int found = 0;
+  std::string subDir = path;
+  Block tempdir = currentDir;
+  std::string dirToFind = "";
+  while (subDir != ""){
+    if(subDir.find("/") != std::string::npos){
+      dirToFind = subDir.substr(0,subDir.find("/"));
+      int nrOfEntries = int(tempdir[1]);
+      for (int i = 11; i < nrOfEntries + 11; i++) {
+        std::string header = this->getHeader(tempdir[i]);
+        if (this->getFileName(tempdir[i]) == dirToFind and int(header[0]) == 0) {
+          std::cout << this->getFileName(int(tempdir[i])) << std::endl;
+          tempdir = this->mMemblockDevice.readBlock(int(tempdir[i]));
+        }
+      }
+      subDir = subDir.substr(subDir.find("/")+1);
+    //found = changeDir(path.substr(path.find("/")+1));
+    }
   }
+
   //path.substr(path.find("/"));
 
   return 0;

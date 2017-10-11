@@ -11,7 +11,8 @@ private:
     bool bitmap[250] = {false};
     // Here you can add your own data structures
     std::string getFileName(int blockIndex);
-    bool name_is_available(std::string name);
+    std::string getHeader(int blockIndex);
+    int getIndex(std::string name);
     bool currentDir_is_full(){
       return (this->currentDir.toString()[1] > 499);
     }
