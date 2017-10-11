@@ -29,7 +29,7 @@ public:
     int write(std::string);
 
     /* Creates a folder in the filesystem */
-    // createFolderi(...);
+    int createFolder(std::string name, int privilege = 3);
 
     /* Removes a file in the filesystem */
     // removeFile(...);
@@ -44,7 +44,7 @@ public:
 
     /* This function will get all the files and folders in the specified folder */
     void listDir();
-
+    int changeDir(std::string path);
     /* Add your own member-functions if needed */
 };
 
