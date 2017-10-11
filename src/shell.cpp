@@ -70,6 +70,7 @@ int main(void) {
                 fileSystem->changeDir(commandArr[1]);
                 break;
             case 13: // pwd
+                fileSystem->printCurrentPath();
                 break;
             case 14: // help
                 std::cout << help() << std::endl;
