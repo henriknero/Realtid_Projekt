@@ -11,6 +11,7 @@ private:
     bool bitmap[250] = {false};
     // Here you can add your own data structures
     std::string getFileName(int blockIndex);
+    bool name_is_available(std::string name);
     bool currentDir_is_full(){
       return (this->currentDir.toString()[1] > 499);
     }
@@ -32,13 +33,13 @@ public:
     int createFolder(std::string name, int privilege = 3);
 
     /* Removes a file in the filesystem */
-    // removeFile(...);
+    int removeFile(std::string fileName);
 
     /* Removes a folder in the filesystem */
     // removeFolder(...);
 
     /* Function will move the current location to a specified location in the filesystem */
-    // goToFolder(...);
+    // goToFolder(...);.
 
     void printCurrentPath();
 
