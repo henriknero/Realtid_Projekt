@@ -13,7 +13,7 @@ std::string FileSystem::getFileName(int blockIndex){
   }
   return output;
 }
-
+//hej Hopp
 int FileSystem::getIndex(std::string name){
   int returnValue = -1;
   std::string temp = this->currentDir.toString();
