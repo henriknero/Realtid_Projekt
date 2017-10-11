@@ -35,15 +35,6 @@ std::string FileSystem::getHeader(int blockIndex){
 }
 
 
-std::string FileSystem::getHeader(int blockIndex){
-  std::string temp = this->mMemblockDevice.readBlock(blockIndex).toString();
-  std::string output = "";
-  for (size_t i = 0; i < 11; i++) {
-    output += temp[i];
-  }
-  return output;
-}
-
 
 FileSystem::FileSystem() {
 
@@ -216,43 +207,6 @@ void FileSystem::listDir(){
   }
 }
 
-int FileSystem::createFolder(std::string name, int privilege){
-  int returnValue;
-  if(!currentDir_is_full()){
-    returnValue = -3; //-3 = inappropriate filename length, 1 = successfully written to hdd
-    int blockIndex = -1;
-    for (int i = 1; i < 250; i++) {
-      if (!bitmap[i]) {
-        blockIndex = i;
-        break;
-      }
-    }
-    std::string temp = this->mMemblockDevice.readBlock(blockIndex).toString();
-    if(name.length()<9){
-      temp[0] = 0;
-      temp[1] = 2;
-      temp[2] = privilege;
-      temp[11] = blockIndex;
-      temp[12] = this->currentDir.toString()[11];
-      for (int i = 3; i < int(name.length()) + 3; i++) {
-        temp[i] = name[i-3];
-      }
-      returnValue = this->mMemblockDevice.writeBlock(blockIndex, temp);
-      if (returnValue == 1) {
-        std::string tempdir = this->currentDir.toString();
-        tempdir[1]++; //nrOf
-        tempdir[10+int(tempdir[1])] = blockIndex;
-        bitmap[blockIndex] = true;
-        this->mMemblockDevice.writeBlock(int(tempdir[11]), tempdir);
-        this->currentDir = this->mMemblockDevice.readBlock(int(tempdir[11]));
-      }
-    }
-  }
-  else{
-    returnValue = -4;
-  }
-  return returnValue;
-}
 
 int FileSystem::changeDir(std::string path){
   int found = 0;
