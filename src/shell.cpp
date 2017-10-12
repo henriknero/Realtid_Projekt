@@ -71,7 +71,7 @@ int main(void) {
                 currentDir = fileSystem->changeDir(commandArr[1]);
                 break;
             case 13: // pwd
-                fileSystem->printCurrentPath();
+                std::cout << fileSystem->getCurrentPath() <<std::endl;
                 break;
             case 14: // help
                 std::cout << help() << std::endl;

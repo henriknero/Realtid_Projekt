@@ -147,7 +147,7 @@ int FileSystem::removeFile(std::string fileName){
   return directoryIndex_ofFile;
 }
 
-std::string FileSystem::printCurrentPath(){
+std::string FileSystem::getCurrentPath(){
   //int start;
   int blockIndex;
   std::string output = "";
@@ -216,7 +216,7 @@ std::string FileSystem::changeDir(std::string path){
   }
   else if (subDir == "..") {
     this->currentDir = this->mMemblockDevice.readBlock(this->currentDir[12]);
-    return printCurrentPath();
+
   }
   else if (subDir[0] == '/'){
     this->currentDir = this->mMemblockDevice.readBlock(0);
@@ -239,7 +239,7 @@ std::string FileSystem::changeDir(std::string path){
       }
     }
   }
-  return printCurrentPath();
+  return getCurrentPath();
 }
 /* Please insert your code
 char* Filesystem::readHeader(Block* block){
