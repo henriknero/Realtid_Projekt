@@ -36,7 +36,6 @@ std::string FileSystem::getHeader(int blockIndex){
 
 int FileSystem::fileOrDir(int blockIndex){
   int flag = this->mMemblockDevice.readBlock(blockIndex).toString()[0];
-  std::cout << flag << std::endl;
   return flag;
 }
 
@@ -150,26 +149,33 @@ int FileSystem::createFolder(std::string name, int privilege){
 }
 
 
-int FileSystem::remove(std::string name){
+int FileSystem::remove(std::string name){ //funkar ej, se längst ner i funktion
   //std::string temp = this->currentDir.toString();
+  int returnValue = -1;
+  std::string start = this->getCurrentPath();
+  std::string path;
   bool name_is_path = contains_slash(name);
-  int start = this->currentDir[11];
   if (name_is_path){
-    name_is_path = !name_is_path; //bajstemporär filler
+    path = name.substr(0, name.find_last_of('/'));
+    name = name.substr(name.find_last_of('/')+1);
+    this->changeDir(path);
   }
   int directoryIndex = getIndex(name);
   if (directoryIndex != -1){
     int flag = fileOrDir(this->currentDir[directoryIndex]);
     if (flag == 1){
-      return this->removeFile(directoryIndex);
+      returnValue = this->removeFile(directoryIndex);
     }
 
     else if (flag == 0){
-      return this->removeFolder(directoryIndex);
+      returnValue = this->removeFolder(directoryIndex);
     }
 
   }
-  return 0;
+  if (name_is_path){
+    this->changeDir(start); //detta funkar ej
+  }
+  return returnValue;
 }
 
 //inte klar, fuckar ur
