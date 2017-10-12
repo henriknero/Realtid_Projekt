@@ -163,7 +163,7 @@ std::string FileSystem::printCurrentPath(){
     temp_header = this->mMemblockDevice.readBlock(blockIndex).toString();
   }
   output = "/" + output;
-  std::cout << output << std::endl;
+  return output;
 }
 
 
@@ -207,11 +207,18 @@ void FileSystem::listDir(){
 }
 
 
-int FileSystem::changeDir(std::string path){
+std::string FileSystem::changeDir(std::string path){
   int found = 0;
   std::string subDir = path;
   Block tempdir = this->currentDir;
-  if (subDir[0] == '/'){
+  if (subDir == ".") {
+    subDir = subDir.substr(1);
+  }
+  else if (subDir == "..") {
+    this->currentDir = this->mMemblockDevice.readBlock(this->currentDir[12]);
+    return printCurrentPath();
+  }
+  else if (subDir[0] == '/'){
     this->currentDir = this->mMemblockDevice.readBlock(0);
     subDir = subDir.substr(1);
   }
@@ -232,7 +239,7 @@ int FileSystem::changeDir(std::string path){
       }
     }
   }
-  return 0;
+  return printCurrentPath();
 }
 /* Please insert your code
 char* Filesystem::readHeader(Block* block){

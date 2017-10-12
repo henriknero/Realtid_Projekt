@@ -42,11 +42,11 @@ public:
     /* Function will move the current location to a specified location in the filesystem */
     // goToFolder(...);.
 
-    void printCurrentPath();
+    std::string printCurrentPath();
 
     /* This function will get all the files and folders in the specified folder */
     void listDir();
-    int changeDir(std::string path);
+    std::string changeDir(std::string path);
     /* Add your own member-functions if needed */
 };
 
