@@ -30,7 +30,7 @@ public:
     /* This function creates a file in the filesystem */
     int createFile(std::string fileName, int privilege = 3);
 
-    int write(std::string);
+    int write(std::string fileName, std::string data);
 
     /* Creates a folder in the filesystem */
     int createFolder(std::string name, int privilege = 3);
@@ -42,13 +42,12 @@ public:
     /* Removes a folder in the filesystem */
     int removeFolder(int directoryIndex_ofDir);
 
-    /* Function will move the current location to a specified location in the filesystem */
-    // goToFolder(...);.
 
     std::string getCurrentPath();
 
     /* This function will get all the files and folders in the specified folder */
     void listDir();
+    /* Function will move the current location to a specified location in the filesystem */
     std::string changeDir(std::string path);
     /* Add your own member-functions if needed */
 };
