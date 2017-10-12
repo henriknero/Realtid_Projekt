@@ -287,7 +287,7 @@ std::string FileSystem::changeDir(std::string path){
   }
   std::string dirToFind = "";
   while (subDir != ""){
-    if (subDir.substr(0,2) == "..") {
+    while (subDir.substr(0,2) == "..") {
       this->currentDir = this->mMemblockDevice.readBlock(this->currentDir[12]);
       subDir = subDir.substr(2);
       if (subDir[0] == '/' && subDir.length() > 1) {
@@ -298,7 +298,7 @@ std::string FileSystem::changeDir(std::string path){
         found = 1;
       }
     }
-    else if (subDir.substr(0,1) == ".") {
+    while (subDir.substr(0,1) == ".") {
       subDir = subDir.substr(1);
       found = 1;
     }
@@ -320,16 +320,6 @@ std::string FileSystem::changeDir(std::string path){
         found = 1;
         break;
       }
-      // else if((entryName == dirToFind) && (this->mMemblockDevice[entryBIndex][0] == 1)){
-      //   std::cout << "Not a path" << std::endl;
-      //   subDir = "";
-      //   brea
-      // }
-      // else{
-      //   std::cout << "Directory " << dirToFind << " not found." << std::endl;
-      //   subDir = "";
-      //   break;
-      // }
     }
     if(found == 0){
       std::cout << "Directory not found" << std::endl;
