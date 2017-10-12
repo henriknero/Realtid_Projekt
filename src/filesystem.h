@@ -16,10 +16,12 @@ private:
     bool currentDir_is_full(){
       return (this->currentDir.toString()[1] > 499);
     }
+    int fileOrDir(int blockIndex);
+    bool contains_slash(std::string name);
+
 public:
     FileSystem();
     ~FileSystem();
-
 
     /* These API functions need to be implemented
 	   You are free to specify parameter lists and return values
@@ -33,11 +35,12 @@ public:
     /* Creates a folder in the filesystem */
     int createFolder(std::string name, int privilege = 3);
 
+    int remove(std::string name);
     /* Removes a file in the filesystem */
-    int removeFile(std::string fileName);
+    int removeFile(int directoryIndex_ofFile);
 
     /* Removes a folder in the filesystem */
-    // removeFolder(...);
+    int removeFolder(int directoryIndex_ofDir);
 
     /* Function will move the current location to a specified location in the filesystem */
     // goToFolder(...);.

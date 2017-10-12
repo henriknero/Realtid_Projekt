@@ -19,7 +19,6 @@ std::string help();
 /* More functions ... */
 
 int main(void) {
-
 	std::string userCommand, commandArr[MAXCOMMANDS];
 	std::string user = "user@DV1492";    // Change this if you want another user to be displayed
 	std::string currentDir = "/";    // current directory, used for output
@@ -56,7 +55,7 @@ int main(void) {
             case 6: // restoreImage
                 break;
             case 7: // rm
-                fileSystem->removeFile(commandArr[1]);
+                fileSystem->remove(commandArr[1]);
                 break;
             case 8: // cp
                 break;

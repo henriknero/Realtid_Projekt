@@ -13,7 +13,7 @@ std::string FileSystem::getFileName(int blockIndex){
   }
   return output;
 }
-//hej Hopp
+//hej Hopp (directory index)
 int FileSystem::getIndex(std::string name){
   int returnValue = -1;
   std::string temp = this->currentDir.toString();
@@ -32,6 +32,23 @@ std::string FileSystem::getHeader(int blockIndex){
     output += temp[i];
   }
   return output;
+}
+
+int FileSystem::fileOrDir(int blockIndex){
+  int flag = this->mMemblockDevice.readBlock(blockIndex).toString()[0];
+  std::cout << flag << std::endl;
+  return flag;
+}
+
+bool FileSystem::contains_slash(std::string name){
+  bool slash = false;
+  for(int i = 0; i < int(name.length()); i++){
+    if(name[i] == '/'){
+      slash = true;
+      break;
+    }
+  }
+  return slash;
 }
 
 FileSystem::FileSystem() {
@@ -133,18 +150,71 @@ int FileSystem::createFolder(std::string name, int privilege){
 }
 
 
+int FileSystem::remove(std::string name){
+  //std::string temp = this->currentDir.toString();
+  bool name_is_path = contains_slash(name);
+  int start = this->currentDir[11];
+  if (name_is_path){
+    name_is_path = !name_is_path; //bajstemporär filler
+  }
+  int directoryIndex = getIndex(name);
+  if (directoryIndex != -1){
+    int flag = fileOrDir(this->currentDir[directoryIndex]);
+    if (flag == 1){
+      return this->removeFile(directoryIndex);
+    }
+
+    else if (flag == 0){
+      return this->removeFolder(directoryIndex);
+    }
+
+  }
+  return 0;
+}
+
 //inte klar, fuckar ur
-int FileSystem::removeFile(std::string fileName){
+int FileSystem::removeFile(int directoryIndex_ofFile){
   std::string temp = this->currentDir.toString();
-  int directoryIndex_ofFile = getIndex(fileName);
-  if (directoryIndex_ofFile != -1){
+  //int directoryIndex_ofFile = getIndex(fileName);
+  if ((directoryIndex_ofFile != -1) && (temp[1] > 2)) { //om filen finns i currentDir
     //temp[1] är mappens nrOf
-    int index_of_last_element = 13 + (temp[1]-2);
-    temp[directoryIndex_ofFile] = index_of_last_element;
-    temp[-1]--;
+    int index_of_last_element = 10 + (temp[1]);
+
+    if(directoryIndex_ofFile != index_of_last_element){
+      temp[directoryIndex_ofFile] = temp[index_of_last_element];
+    }
+
+    temp[1]--;
     //
+    this->mMemblockDevice.writeBlock(int(temp[11]), temp);
+    this->currentDir = this->mMemblockDevice.readBlock(int(temp[11]));
   }
   return directoryIndex_ofFile;
+}
+
+int FileSystem::removeFolder(int directoryIndex_ofDir){
+  std::string temp = this->currentDir.toString();
+  //int directoryIndex_ofFile = getIndex(fileName);
+  std::string dirToBeRemoved = this->mMemblockDevice.readBlock(int(temp[directoryIndex_ofDir])).toString();
+  if (dirToBeRemoved[1] <= 2){
+    if ((directoryIndex_ofDir != -1) && (temp[1] > 2)) { //om filen finns i currentDir
+      //temp[1] är mappens nrOf
+      int index_of_last_element = 10 + (temp[1]);
+
+      if(directoryIndex_ofDir != index_of_last_element){
+        temp[directoryIndex_ofDir] = temp[index_of_last_element];
+      }
+
+      temp[1]--;
+      //
+      this->mMemblockDevice.writeBlock(int(temp[11]), temp);
+      this->currentDir = this->mMemblockDevice.readBlock(int(temp[11]));
+    }
+    return directoryIndex_ofDir;
+  }
+  else{
+    return 0;
+  }
 }
 
 std::string FileSystem::getCurrentPath(){
