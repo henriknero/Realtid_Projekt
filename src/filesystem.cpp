@@ -34,8 +34,6 @@ std::string FileSystem::getHeader(int blockIndex){
   return output;
 }
 
-
-
 FileSystem::FileSystem() {
 
   this->mMemblockDevice = MemBlockDevice();
@@ -109,14 +107,15 @@ int FileSystem::createFolder(std::string name, int privilege){
     std::string temp = this->mMemblockDevice.readBlock(blockIndex).toString();
     if(name.length()<9){
       temp[0] = 0;
-      temp[1] = 0;
+      temp[1] = 2;
       temp[2] = privilege;
       temp[11] = blockIndex;
-      temp[12] = this->currentDir.toString()[11];
+      temp[12] = this->currentDir[11];
       for (int i = 3; i < int(name.length()) + 3; i++) {
         temp[i] = name[i-3];
       }
       returnValue = this->mMemblockDevice.writeBlock(blockIndex, temp);
+      //wat
       if (returnValue == 1) {
         std::string tempdir = this->currentDir.toString();
         tempdir[1]++; //nrOf
@@ -148,7 +147,7 @@ int FileSystem::removeFile(std::string fileName){
   return directoryIndex_ofFile;
 }
 
-void FileSystem::printCurrentPath(){
+std::string FileSystem::printCurrentPath(){
   //int start;
   int blockIndex;
   std::string output = "";
@@ -170,7 +169,7 @@ void FileSystem::printCurrentPath(){
 
 void FileSystem::listDir(){
   std::cout << "Type\tName\tPermissions\tSize" << std::endl;
-  std::string temp = currentDir.toString();
+  std::string temp = this->currentDir.toString();
   for (int i = 13; i < int(temp[1]) + 11; i++) {
     std::string temp_header = this->mMemblockDevice.readBlock(temp[i]).toString();
     std::string output = "";
@@ -211,26 +210,28 @@ void FileSystem::listDir(){
 int FileSystem::changeDir(std::string path){
   int found = 0;
   std::string subDir = path;
-  Block tempdir = currentDir;
+  Block tempdir = this->currentDir;
+  if (subDir[0] == '/'){
+    this->currentDir = this->mMemblockDevice.readBlock(0);
+    subDir = subDir.substr(1);
+  }
   std::string dirToFind = "";
   while (subDir != ""){
     if(subDir.find("/") != std::string::npos){
       dirToFind = subDir.substr(0,subDir.find("/"));
-      int nrOfEntries = int(tempdir[1]);
-      for (int i = 11; i < nrOfEntries + 11; i++) {
-        std::string header = this->getHeader(tempdir[i]);
-        if (this->getFileName(tempdir[i]) == dirToFind and int(header[0]) == 0) {
-          std::cout << this->getFileName(int(tempdir[i])) << std::endl;
-          tempdir = this->mMemblockDevice.readBlock(int(tempdir[i]));
-        }
-      }
       subDir = subDir.substr(subDir.find("/")+1);
-    //found = changeDir(path.substr(path.find("/")+1));
+    }
+    else{
+      dirToFind = subDir;
+      subDir = "";
+    }
+    int nrOfEntries = int(this->currentDir[1]);
+    for (int i = 11; i < nrOfEntries + 11; i++) {
+      if (this->getFileName(this->currentDir[i]) == dirToFind and int(this->currentDir[0]) == 0) {
+        this->currentDir = this->mMemblockDevice.readBlock(int(this->currentDir[i]));
+      }
     }
   }
-
-  //path.substr(path.find("/"));
-
   return 0;
 }
 /* Please insert your code
