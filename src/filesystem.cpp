@@ -211,19 +211,28 @@ std::string FileSystem::changeDir(std::string path){
   int found = 0;
   std::string subDir = path;
   Block tempdir = this->currentDir;
-  if (subDir == ".") {
-    subDir = subDir.substr(1);
-  }
-  else if (subDir == "..") {
-    this->currentDir = this->mMemblockDevice.readBlock(this->currentDir[12]);
-
-  }
-  else if (subDir[0] == '/'){
+  if (subDir[0] == '/'){
     this->currentDir = this->mMemblockDevice.readBlock(0);
     subDir = subDir.substr(1);
   }
   std::string dirToFind = "";
   while (subDir != ""){
+    if (subDir.substr(0,2) == "..") {
+      this->currentDir = this->mMemblockDevice.readBlock(this->currentDir[12]);
+      subDir = subDir.substr(2);
+      if (subDir[0] == '/' && subDir.length() > 1) {
+        subDir = subDir.substr(1);
+      }
+      else{
+        subDir = "";
+        found = 1;
+      }
+    }
+    else if (subDir.substr(0,1) == ".") {
+      subDir = subDir.substr(1);
+      found = 1;
+    }
+
     if(subDir.find("/") != std::string::npos){
       dirToFind = subDir.substr(0,subDir.find("/"));
       subDir = subDir.substr(subDir.find("/")+1);
@@ -234,9 +243,31 @@ std::string FileSystem::changeDir(std::string path){
     }
     int nrOfEntries = int(this->currentDir[1]);
     for (int i = 11; i < nrOfEntries + 11; i++) {
-      if (this->getFileName(this->currentDir[i]) == dirToFind and int(this->currentDir[0]) == 0) {
+      std::string entryName = this->getFileName(this->currentDir[i]);
+      int entryBIndex = int(this->currentDir[i]);
+      if ((entryName == dirToFind) && (this->mMemblockDevice[entryBIndex][0] == 0)) {
         this->currentDir = this->mMemblockDevice.readBlock(int(this->currentDir[i]));
+        found = 1;
+        break;
       }
+      // else if((entryName == dirToFind) && (this->mMemblockDevice[entryBIndex][0] == 1)){
+      //   std::cout << "Not a path" << std::endl;
+      //   subDir = "";
+      //   brea
+      // }
+      // else{
+      //   std::cout << "Directory " << dirToFind << " not found." << std::endl;
+      //   subDir = "";
+      //   break;
+      // }
+    }
+    if(found == 0){
+      std::cout << "Directory not found" << std::endl;
+      this->currentDir = tempdir;
+      subDir = "";
+    }
+    else{
+      found = 0;
     }
   }
   return getCurrentPath();
