@@ -74,7 +74,16 @@ FileSystem::~FileSystem() {
 
 int FileSystem::createFile(std::string fileName, int privilege){
   int returnValue;
+  std::string start;
+  std::string path;
   if ((!currentDir_is_full()) && (getIndex(fileName) == -1)) {
+    bool name_is_path = contains_slash(fileName);
+    if (name_is_path){
+      start = this->getCurrentPath();
+      path = fileName.substr(0, fileName.find_last_of('/'));
+      fileName = fileName.substr(fileName.find_last_of('/')+1);
+      this->changeDir(path);
+    }
     returnValue = -3; //-3 = inappropriate filename length, 1 = successfully written to hdd
     int blockIndex = -1;
     for (int i = 1; i < 250; i++) {
@@ -92,6 +101,9 @@ int FileSystem::createFile(std::string fileName, int privilege){
       for (int i = 3; i < int(fileName.length()) + 3; i++) {
         temp[i] = fileName[i-3];
       }
+      if(fileName.length() < 8){
+        temp[3+fileName.length()] = '\0';
+      }
       returnValue = this->mMemblockDevice.writeBlock(blockIndex, temp);
       if (returnValue == 1) {
         std::string tempdir = this->currentDir.toString();
@@ -102,6 +114,9 @@ int FileSystem::createFile(std::string fileName, int privilege){
         this->currentDir = this->mMemblockDevice.readBlock(int(tempdir[11]));
       }
     }
+    if (name_is_path){
+      this->changeDir(start); //detta funkar ej
+    }
   }
   else{
     returnValue = -4;
@@ -111,7 +126,7 @@ int FileSystem::createFile(std::string fileName, int privilege){
 
 int FileSystem::createFolder(std::string name, int privilege){
   int returnValue;
-  if((!currentDir_is_full()) && (getIndex(name) == -1)){
+  if((!currentDir_is_full()) && (getIndex(name) == -1)) {
     returnValue = -3; //-3 = inappropriate filename length, 1 = successfully written to hdd
     int blockIndex = -1;
     for (int i = 1; i < 250; i++) {
@@ -129,6 +144,9 @@ int FileSystem::createFolder(std::string name, int privilege){
       temp[12] = this->currentDir[11];
       for (int i = 3; i < int(name.length()) + 3; i++) {
         temp[i] = name[i-3];
+      }
+      if(name.length() < 8){
+        temp[3+name.length()] = '\0';
       }
       returnValue = this->mMemblockDevice.writeBlock(blockIndex, temp);
       //wat
@@ -151,6 +169,7 @@ int FileSystem::createFolder(std::string name, int privilege){
 
 int FileSystem::remove(std::string name){ //funkar ej, se längst ner i funktion
   //std::string temp = this->currentDir.toString();
+  int blockIndex;
   int returnValue = -1;
   std::string start = this->getCurrentPath();
   std::string path;
@@ -163,6 +182,7 @@ int FileSystem::remove(std::string name){ //funkar ej, se längst ner i funktion
   int directoryIndex = getIndex(name);
   if (directoryIndex != -1){
     int flag = fileOrDir(this->currentDir[directoryIndex]);
+    blockIndex = this->currentDir[directoryIndex];
     if (flag == 1){
       returnValue = this->removeFile(directoryIndex);
     }
@@ -170,6 +190,7 @@ int FileSystem::remove(std::string name){ //funkar ej, se längst ner i funktion
     else if (flag == 0){
       returnValue = this->removeFolder(directoryIndex);
     }
+    bitmap[blockIndex] = false;
 
   }
   if (name_is_path){
