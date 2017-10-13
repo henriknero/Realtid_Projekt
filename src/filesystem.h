@@ -31,7 +31,7 @@ public:
     int createFile(std::string fileName, int privilege = 3);
 
     int write(std::string fileName, std::string data);
-
+    std::string read(std::string fileName);
     /* Creates a folder in the filesystem */
     int createFolder(std::string name, int privilege = 3);
 

@@ -131,9 +131,6 @@ int FileSystem::createFile(std::string fileName, int privilege){
 int FileSystem::write(std::string fileName, std::string data){
   std::string start = "";
   std::string path;
-  //int blocks_required;
-  //int directoryIndex_ofFile;
-  //int blockIndex;
   bool name_is_path = contains_slash(fileName);
   if (name_is_path){
     start = this->getCurrentPath();
@@ -151,7 +148,7 @@ int FileSystem::write(std::string fileName, std::string data){
     for (int i = 0; i < blocks_required; i++){
 
     }
-    
+
     for (int i = 12; i < data.length()+12; i++){
       temp[i] = data[i -12];
     }
@@ -162,7 +159,34 @@ int FileSystem::write(std::string fileName, std::string data){
     this->changeDir(start);
   }
 }
+std::string FileSystem::read(std::string fileName){
+  std::string start = "";
+  std::string path;
+  std::string returnValue = "";
+  int nextBlock = 0;
+  bool name_is_path = contains_slash(fileName);
+  if (name_is_path){
+    start = this->getCurrentPath();
+    path = fileName.substr(0, fileName.find_last_of('/'));
+    fileName = fileName.substr(fileName.find_last_of('/')+1);
+    this->changeDir(path);
+  }
+  do {
+    if (start != this->getCurrentPath()) {
+      int entryBIndex = int(this->currentDir[getIndex(fileName)]);
+      int fileSize = this->mMemblockDevice[entryBIndex][1];
+      for (int i = 12; i <fileSize + 12; i++) {
+        returnValue += this->mMemblockDevice[entryBIndex][i];
+      }
+    }
+    nextBlock = this->mMemblockDevice[entryBIndex][11];
+  } while(nextBlock != 0);
 
+  if (name_is_path){
+    this->changeDir(start);
+  }
+  return returnValue;
+}
 
 int FileSystem::createFolder(std::string name, int privilege){
   int returnValue = -3;

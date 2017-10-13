@@ -54,6 +54,7 @@ int main(void) {
                 }
                 break;
             case 4: // cat
+                std::cout << fileSystem->read(commandArr[1]) << std::endl;
                 break;
             case 5: // createImage
                 break;
