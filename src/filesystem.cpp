@@ -199,8 +199,12 @@ int FileSystem::write(std::string fileName, std::string data){
   }
   if (start != this->getCurrentPath()) {
     int blocks_required = (data.length() / 500) + 1 ;
+    if(data.length() % 500 == 0){
+      blocks_required--;
+    }
     int directoryIndex_ofFile = getIndex(fileName);
     int blockIndex = this->currentDir[directoryIndex_ofFile];
+    std::cout << blockIndex << std::endl;
     std::string temp = this->mMemblockDevice.readBlock(blockIndex).toString();
 
 
@@ -210,7 +214,6 @@ int FileSystem::write(std::string fileName, std::string data){
       int availableBlocks = 0;
       for (int i = 1; i < 250; i++) {
         if (!bitmap[i]) {
-          blockIndex = i;
           availableBlocks++;
         }
       }
@@ -219,6 +222,7 @@ int FileSystem::write(std::string fileName, std::string data){
         blocks_required = availableBlocks+1;
       }
 
+      //Lägger fortsättningsblockens blockIndex i en array.
       int following_blockIndexes[blocks_required-1] = {0};
       for (int i = 0; i < blocks_required-1; i++){
         int tempIndex = -1;
@@ -231,12 +235,16 @@ int FileSystem::write(std::string fileName, std::string data){
         }
         following_blockIndexes[i] = tempIndex;
       }
+      //---------------------------------------------
+
+
       temp[11] = following_blockIndexes[0];
+
       std::string temp_followingBlock;
       for(int i = 0; i < blocks_required-2; i++){
-        temp_followingBlock = this->mMemblockDevice.readBlock(following_blockIndexes[i+1]).toString();
-        temp_followingBlock[11] = following_blockIndexes[i+2];
-        this->mMemblockDevice.writeBlock(following_blockIndexes[i+1], temp_followingBlock);
+        temp_followingBlock = this->mMemblockDevice.readBlock(following_blockIndexes[i]).toString();
+        temp_followingBlock[11] = following_blockIndexes[i+1];
+        this->mMemblockDevice.writeBlock(following_blockIndexes[i], temp_followingBlock);
       }
 
       for (int i = 12; i < 512; i++){
@@ -244,11 +252,13 @@ int FileSystem::write(std::string fileName, std::string data){
       }
 
       for (int i = 0; i < blocks_required-1; i++){
+        temp_followingBlock = this->mMemblockDevice.readBlock(following_blockIndexes[i]).toString();
         for (int j = 12; j < 512; j++){
-          temp_followingBlock = this->mMemblockDevice.readBlock(following_blockIndexes[i]).toString();
           temp_followingBlock[j] = data[(j-12)+(500*(i+1))];
-          this->mMemblockDevice.writeBlock(following_blockIndexes[i], temp_followingBlock);
+          //std::cout << temp_followingBlock[j] << std::endl;
         }
+        std::cout << following_blockIndexes[i] << std::endl;
+        this->mMemblockDevice.writeBlock(following_blockIndexes[i], temp_followingBlock);
       }
     }
 
@@ -258,6 +268,13 @@ int FileSystem::write(std::string fileName, std::string data){
       }
     }
     sizemap[int(temp[1])] = data.length();
+
+    //std::cout << temp[11] << std::endl;
+    //std::cout << temp[12] << std::endl;
+    //std::cout << temp[13] << std::endl;
+    //std::cout << temp[14] << std::endl;
+    //std::cout << temp[15] << std::endl;
+    std::cout << blockIndex << std::endl;
     this->mMemblockDevice.writeBlock(blockIndex, temp);
   }
   if (name_is_path){
@@ -265,6 +282,55 @@ int FileSystem::write(std::string fileName, std::string data){
   }
 }
 
+std::string FileSystem::read(std::string fileName){
+  std::string start = "";
+  std::string path;
+  std::string returnValue = "";
+  //int nextBlock = 0;
+  bool name_is_path = contains_slash(fileName);
+  if (name_is_path){
+    start = this->getCurrentPath();
+    path = fileName.substr(0, fileName.find_last_of('/'));
+    fileName = fileName.substr(fileName.find_last_of('/')+1);
+    this->changeDir(path);
+  }
+//  do {
+    if (start != this->getCurrentPath()) {
+      int blockIndex = int(this->currentDir[getIndex(fileName)]);
+      int fileSize = sizemap[int(this->mMemblockDevice[blockIndex][1])];
+      int nrOfBlocks = (fileSize/500) + 1;
+      if (fileSize%500 == 0){
+        nrOfBlocks--;
+      }
+
+      for(int i = 0; i < nrOfBlocks; i++){
+        for(int j = 12; j < 512; j++){
+          returnValue += this->mMemblockDevice[blockIndex][j];
+        }
+        //std::cout << returnValue << std::endl;
+        blockIndex = this->mMemblockDevice[blockIndex][11];
+      }
+
+
+      int rest = fileSize%500;
+
+      for(int i; i < rest; i++){
+        returnValue += this->mMemblockDevice[blockIndex][11];
+      }
+
+
+    }
+  //  nextBlock = this->mMemblockDevice[entryBIndex][11];
+//    fileSize = fileSize
+//  } while(nextBlock != 0);
+
+  if (name_is_path){
+    this->changeDir(start);
+  }
+  return returnValue;
+}
+
+/*
 std::string FileSystem::read(std::string fileName){
   std::string start = "";
   std::string path;
@@ -310,6 +376,8 @@ std::string FileSystem::read(std::string fileName){
   }
   return returnValue;
 }
+*/
+
 
 int FileSystem::remove(std::string name){
 
