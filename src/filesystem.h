@@ -46,9 +46,9 @@ public:
     std::string getCurrentPath();
 
     /* This function will get all the files and folders in the specified folder */
-    void listDir();
+    std::string listDir();
     /* Function will move the current location to a specified location in the filesystem */
-    std::string changeDir(std::string path);
+    bool changeDir(std::string path);
     /* Add your own member-functions if needed */
 };
 

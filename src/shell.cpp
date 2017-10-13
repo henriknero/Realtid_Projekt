@@ -43,10 +43,15 @@ int main(void) {
                 break;
             case 2: // ls
                 std::cout << "Listing directory" << std::endl;
-                fileSystem->listDir();
+                std::cout << "Type\tName\tPermissions\tSize" << std::endl;
+                std::cout << fileSystem->listDir() << std::endl;
                 break;
             case 3: // create
-                fileSystem->createFile(commandArr[1]);
+                if(fileSystem->createFile(commandArr[1]) == 1){
+                  std::string tempString;
+                  getline(std::cin,tempString);
+                  fileSystem->write(commandArr[1], tempString);
+                }
                 break;
             case 4: // cat
                 break;
@@ -67,7 +72,12 @@ int main(void) {
                 fileSystem->createFolder(commandArr[1]);
                 break;
             case 12: // cd
-                currentDir = fileSystem->changeDir(commandArr[1]);
+                if(fileSystem->changeDir(commandArr[1])){
+                  currentDir = fileSystem->getCurrentPath();
+                }
+                else{
+                  std::cout << "Directory not found" << std::endl;
+                }
                 break;
             case 13: // pwd
                 std::cout << fileSystem->getCurrentPath() <<std::endl;
