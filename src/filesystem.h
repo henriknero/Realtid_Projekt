@@ -9,12 +9,13 @@ private:
     MemBlockDevice mMemblockDevice;
     Block currentDir;
     bool bitmap[250] = {false};
+    int sizemap[250] = {0};
     // Here you can add your own data structures
     std::string getFileName(int blockIndex);
     std::string getHeader(int blockIndex);
     int getIndex(std::string name);
     bool currentDir_is_full(){
-      return (this->currentDir.toString()[1] > 499);
+      return (sizemap[int(this->currentDir.toString()[1])] > 499);
     }
     int fileOrDir(int blockIndex);
     bool contains_slash(std::string name);
@@ -30,10 +31,12 @@ public:
     /* This function creates a file in the filesystem */
     int createFile(std::string fileName, int privilege = 3);
 
-    int write(std::string fileName, std::string data);
 
     /* Creates a folder in the filesystem */
     int createFolder(std::string name, int privilege = 3);
+
+    int write(std::string fileName, std::string data);
+    std::string read(std::string fileName);
 
     int remove(std::string name);
     /* Removes a file in the filesystem */

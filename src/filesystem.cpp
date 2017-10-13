@@ -17,7 +17,7 @@ std::string FileSystem::getFileName(int blockIndex){
 int FileSystem::getIndex(std::string name){
   int returnValue = -1;
   std::string temp = this->currentDir.toString();
-  for(int i = 13; i < temp[1]+11; i++){
+  for(int i = 13; i < sizemap[int(temp[1])]+11; i++){
     if(this->getFileName(temp[i]) == name){
       returnValue = i;
       break;
@@ -55,7 +55,7 @@ FileSystem::FileSystem() {
   this->mMemblockDevice = MemBlockDevice();
   std::string temp = (this->mMemblockDevice.readBlock(0)).toString();
   temp[0] = 0; //F/D flagga
-  temp[1] = 2; //nrOf
+  temp[1] = 0; //self blockIndex
   temp[2] = 3; // read/write
   temp[3] = '/'; //element 3-10 utgör filnamn (max 8 tecken)
   temp[4] = '\0'; //nullterminator
@@ -64,6 +64,7 @@ FileSystem::FileSystem() {
 
   this->mMemblockDevice.writeBlock(0, temp);
   bitmap[0] = true;
+  sizemap[0] = 2;
   this->currentDir = this->mMemblockDevice.readBlock(0);
 
 }
@@ -96,7 +97,7 @@ int FileSystem::createFile(std::string fileName, int privilege){
     std::string temp = this->mMemblockDevice.readBlock(blockIndex).toString();
     if(fileName.length()<9){
       temp[0] = 1;
-      temp[1] = 0;
+      temp[1] = blockIndex;
       temp[2] = privilege;
       temp[11] = 0;
       for (int i = 3; i < int(fileName.length()) + 3; i++) {
@@ -108,8 +109,8 @@ int FileSystem::createFile(std::string fileName, int privilege){
       returnValue = this->mMemblockDevice.writeBlock(blockIndex, temp);
       if (returnValue == 1) {
         std::string tempdir = this->currentDir.toString();
-        tempdir[1]++; //nrOf
-        tempdir[10+int(tempdir[1])] = blockIndex;
+        sizemap[int(tempdir[1])]++; //nrOf
+        tempdir[10+sizemap[int(tempdir[1])]] = blockIndex;
         bitmap[blockIndex] = true;
         this->mMemblockDevice.writeBlock(int(tempdir[11]), tempdir);
         this->currentDir = this->mMemblockDevice.readBlock(int(tempdir[11]));
@@ -122,6 +123,61 @@ int FileSystem::createFile(std::string fileName, int privilege){
     returnValue = -4; //Current Directory Full?
   }
 
+  if (name_is_path){
+    this->changeDir(start);
+  }
+  return returnValue;
+}
+
+int FileSystem::createFolder(std::string name, int privilege){
+  int returnValue = -3;
+  std::string start = "";
+  std::string path;
+  bool name_is_path = contains_slash(name);
+  if (name_is_path){
+    start = this->getCurrentPath();
+    path = name.substr(0, name.find_last_of('/'));
+    name = name.substr(name.find_last_of('/')+1);
+    this->changeDir(path);
+  }
+  if((!currentDir_is_full()) && (getIndex(name) == -1) && (start != this->getCurrentPath())) {
+    returnValue = -3; //-3 = inappropriate filename length, 1 = successfully written to hdd
+    int blockIndex = -1;
+    for (int i = 1; i < 250; i++) {
+      if (!bitmap[i]) {
+        blockIndex = i;
+        break;
+      }
+    }
+    std::string temp = this->mMemblockDevice.readBlock(blockIndex).toString();
+    if(name.length()<9){
+      temp[0] = 0;
+      temp[1] = blockIndex;
+      sizemap[blockIndex] = 2;
+      temp[2] = privilege;
+      temp[11] = blockIndex;
+      temp[12] = this->currentDir[11];
+      for (int i = 3; i < int(name.length()) + 3; i++) {
+        temp[i] = name[i-3];
+      }
+      if(name.length() < 8){
+        temp[3+name.length()] = '\0';
+      }
+      returnValue = this->mMemblockDevice.writeBlock(blockIndex, temp);
+
+      if (returnValue == 1) {
+        std::string tempdir = this->currentDir.toString();
+        sizemap[int(tempdir[1])]++; //nrOf
+        tempdir[10+sizemap[int(tempdir[1])]] = blockIndex;
+        bitmap[blockIndex] = true;
+        this->mMemblockDevice.writeBlock(int(tempdir[11]), tempdir);
+        this->currentDir = this->mMemblockDevice.readBlock(int(tempdir[11]));
+      }
+    }
+  }
+  else{
+    returnValue = -4;
+  }
   if (name_is_path){
     this->changeDir(start);
   }
@@ -148,14 +204,60 @@ int FileSystem::write(std::string fileName, std::string data){
     std::string temp = this->mMemblockDevice.readBlock(blockIndex).toString();
 
 
-    for (int i = 0; i < blocks_required; i++){
 
+    if(blocks_required > 1){
+      //Börja med att se ifall det finns tillräckligt många lediga block för all data.
+      int availableBlocks = 0;
+      for (int i = 1; i < 250; i++) {
+        if (!bitmap[i]) {
+          blockIndex = i;
+          availableBlocks++;
+        }
+      }
+
+      if(availableBlocks < blocks_required-1){
+        blocks_required = availableBlocks+1;
+      }
+
+      int following_blockIndexes[blocks_required-1] = {0};
+      for (int i = 0; i < blocks_required-1; i++){
+        int tempIndex = -1;
+        for (int j = 1; j < 250; j++) {
+          if (!bitmap[j]) {
+            tempIndex = j;
+            bitmap[tempIndex] = true;
+            break;
+          }
+        }
+        following_blockIndexes[i] = tempIndex;
+      }
+      temp[11] = following_blockIndexes[0];
+      std::string temp_followingBlock;
+      for(int i = 0; i < blocks_required-2; i++){
+        temp_followingBlock = this->mMemblockDevice.readBlock(following_blockIndexes[i+1]).toString();
+        temp_followingBlock[11] = following_blockIndexes[i+2];
+        this->mMemblockDevice.writeBlock(following_blockIndexes[i+1], temp_followingBlock);
+      }
+
+      for (int i = 12; i < 512; i++){
+        temp[i] = data[i -12];
+      }
+
+      for (int i = 0; i < blocks_required-1; i++){
+        for (int j = 12; j < 512; j++){
+          temp_followingBlock = this->mMemblockDevice.readBlock(following_blockIndexes[i]).toString();
+          temp_followingBlock[j] = data[(j-12)+(500*(i+1))];
+          this->mMemblockDevice.writeBlock(following_blockIndexes[i], temp_followingBlock);
+        }
+      }
     }
-    
-    for (int i = 12; i < data.length()+12; i++){
-      temp[i] = data[i -12];
+
+    else{
+      for (size_t i = 12; i < data.length()+12; i++){
+        temp[i] = data[i -12];
+      }
     }
-    temp[1] = data.length();
+    sizemap[int(temp[1])] = data.length();
     this->mMemblockDevice.writeBlock(blockIndex, temp);
   }
   if (name_is_path){
@@ -163,61 +265,51 @@ int FileSystem::write(std::string fileName, std::string data){
   }
 }
 
-
-int FileSystem::createFolder(std::string name, int privilege){
-  int returnValue = -3;
+std::string FileSystem::read(std::string fileName){
   std::string start = "";
   std::string path;
-  bool name_is_path = contains_slash(name);
+  std::string returnValue = "";
+  int nextBlock = 0;
+  bool name_is_path = contains_slash(fileName);
   if (name_is_path){
     start = this->getCurrentPath();
-    path = name.substr(0, name.find_last_of('/'));
-    name = name.substr(name.find_last_of('/')+1);
+    path = fileName.substr(0, fileName.find_last_of('/'));
+    fileName = fileName.substr(fileName.find_last_of('/')+1);
     this->changeDir(path);
   }
-  if((!currentDir_is_full()) && (getIndex(name) == -1) && (start != this->getCurrentPath())) {
-    returnValue = -3; //-3 = inappropriate filename length, 1 = successfully written to hdd
-    int blockIndex = -1;
-    for (int i = 1; i < 250; i++) {
-      if (!bitmap[i]) {
-        blockIndex = i;
-        break;
+//  do {
+    if (start != this->getCurrentPath()) {
+      int entryBIndex = int(this->currentDir[getIndex(fileName)]);
+      int fileSize = sizemap[int(this->mMemblockDevice[entryBIndex][1])];
+      int nrOfBlocks = (fileSize/500) + 1;
+      int tempSize = 0;
+      //for (int i = 12; i <(fileSize%500) + 12; i++) {
+      for (int i = 0; i < nrOfBlocks; i++) {
+        int tempSize = 0;
+        if (fileSize > 500) {
+          tempSize = 500;
+        }
+        else{
+          tempSize = fileSize%500;
+        }
+        for (int j = 12; j < tempSize + 12; j++) {
+          returnValue += this->mMemblockDevice[entryBIndex][j];
+        }
+        if (fileSize > 500) {
+          fileSize = fileSize - 500;
+        }
+        entryBIndex = this->mMemblockDevice[entryBIndex][11];
       }
     }
-    std::string temp = this->mMemblockDevice.readBlock(blockIndex).toString();
-    if(name.length()<9){
-      temp[0] = 0;
-      temp[1] = 2;
-      temp[2] = privilege;
-      temp[11] = blockIndex;
-      temp[12] = this->currentDir[11];
-      for (int i = 3; i < int(name.length()) + 3; i++) {
-        temp[i] = name[i-3];
-      }
-      if(name.length() < 8){
-        temp[3+name.length()] = '\0';
-      }
-      returnValue = this->mMemblockDevice.writeBlock(blockIndex, temp);
+  //  nextBlock = this->mMemblockDevice[entryBIndex][11];
+//    fileSize = fileSize
+//  } while(nextBlock != 0);
 
-      if (returnValue == 1) {
-        std::string tempdir = this->currentDir.toString();
-        tempdir[1]++; //nrOf
-        tempdir[10+int(tempdir[1])] = blockIndex;
-        bitmap[blockIndex] = true;
-        this->mMemblockDevice.writeBlock(int(tempdir[11]), tempdir);
-        this->currentDir = this->mMemblockDevice.readBlock(int(tempdir[11]));
-      }
-    }
-  }
-  else{
-    returnValue = -4;
-  }
   if (name_is_path){
     this->changeDir(start);
   }
   return returnValue;
 }
-
 
 int FileSystem::remove(std::string name){
 
@@ -255,15 +347,15 @@ int FileSystem::remove(std::string name){
 int FileSystem::removeFile(int directoryIndex_ofFile){
   std::string temp = this->currentDir.toString();
   //int directoryIndex_ofFile = getIndex(fileName);
-  if ((directoryIndex_ofFile != -1) && (temp[1] > 2)) { //om filen finns i currentDir
+  if ((directoryIndex_ofFile != -1) && (sizemap[int(temp[1])] > 2)) { //om filen finns i currentDir
     //temp[1] är mappens nrOf
-    int index_of_last_element = 10 + (temp[1]);
+    int index_of_last_element = 10 + (sizemap[int(temp[1])]);
 
     if(directoryIndex_ofFile != index_of_last_element){
       temp[directoryIndex_ofFile] = temp[index_of_last_element];
     }
 
-    temp[1]--;
+    sizemap[int(temp[1])]--;
     //
     this->mMemblockDevice.writeBlock(int(temp[11]), temp);
     this->currentDir = this->mMemblockDevice.readBlock(int(temp[11]));
@@ -276,15 +368,15 @@ int FileSystem::removeFolder(int directoryIndex_ofDir){
   //int directoryIndex_ofFile = getIndex(fileName);
   std::string dirToBeRemoved = this->mMemblockDevice.readBlock(int(temp[directoryIndex_ofDir])).toString();
   if (dirToBeRemoved[1] <= 2){
-    if ((directoryIndex_ofDir != -1) && (temp[1] > 2)) { //om filen finns i currentDir
+    if ((directoryIndex_ofDir != -1) && (sizemap[int(temp[1])] > 2)) { //om filen finns i currentDir
       //temp[1] är mappens nrOf
-      int index_of_last_element = 10 + (temp[1]);
+      int index_of_last_element = 10 + (sizemap[int(temp[1])]);
 
       if(directoryIndex_ofDir != index_of_last_element){
         temp[directoryIndex_ofDir] = temp[index_of_last_element];
       }
 
-      temp[1]--;
+      sizemap[int(temp[1])]--;
       //
       this->mMemblockDevice.writeBlock(int(temp[11]), temp);
       this->currentDir = this->mMemblockDevice.readBlock(int(temp[11]));
@@ -319,7 +411,7 @@ std::string FileSystem::getCurrentPath(){
 std::string FileSystem::listDir(){
   std::string temp = this->currentDir.toString();
   std::string returnValue = "";
-  for (int i = 13; i < int(temp[1]) + 11; i++) {
+  for (int i = 13; i < int(sizemap[int(temp[1])]) + 11; i++) {
     std::string temp_header = this->mMemblockDevice.readBlock(temp[i]).toString();
     std::string output = "";
     if(temp_header[0] == 1){
@@ -351,7 +443,7 @@ std::string FileSystem::listDir(){
       output += 'r';
     }
     output +="\t\t";
-    output += std::to_string(int(temp_header[1])) + "byte";
+    output += std::to_string(int(sizemap[int(temp_header[1])])) + "byte";
     //std::cout << output << int(temp_header[1]) << "byte" << std::endl;
     output += "\n";
     returnValue += output;
@@ -395,7 +487,7 @@ bool FileSystem::changeDir(std::string path){
       dirToFind = subDir;
       subDir = "";
     }
-    int nrOfEntries = int(this->currentDir[1]);
+    int nrOfEntries = sizemap[int(this->currentDir[1])];
     for (int i = 11; i < nrOfEntries + 11; i++) {
       std::string entryName = this->getFileName(this->currentDir[i]);
       int entryBIndex = int(this->currentDir[i]);
@@ -406,7 +498,6 @@ bool FileSystem::changeDir(std::string path){
       }
     }
     if(found == 0){
-      std::cout << "Directory not found" << std::endl;
       this->currentDir = tempdir;
       subDir = "";
     }
