@@ -204,7 +204,6 @@ int FileSystem::write(std::string fileName, std::string data){
     }
     int directoryIndex_ofFile = getIndex(fileName);
     int blockIndex = this->currentDir[directoryIndex_ofFile];
-    std::cout << blockIndex << std::endl;
     std::string temp = this->mMemblockDevice.readBlock(blockIndex).toString();
 
 
@@ -251,15 +250,21 @@ int FileSystem::write(std::string fileName, std::string data){
         temp[i] = data[i -12];
       }
 
-      for (int i = 0; i < blocks_required-1; i++){
+      for (int i = 0; i < blocks_required-2; i++){
         temp_followingBlock = this->mMemblockDevice.readBlock(following_blockIndexes[i]).toString();
         for (int j = 12; j < 512; j++){
           temp_followingBlock[j] = data[(j-12)+(500*(i+1))];
-          //std::cout << temp_followingBlock[j] << std::endl;
         }
-        std::cout << following_blockIndexes[i] << std::endl;
         this->mMemblockDevice.writeBlock(following_blockIndexes[i], temp_followingBlock);
       }
+
+      int rest = data.length() % 500;
+      temp_followingBlock = this->mMemblockDevice.readBlock(following_blockIndexes[blocks_required-2]).toString();
+      for (int i = 0; i < rest; i++){
+        temp_followingBlock[i+12] = data[i + ((blocks_required-1)*500)];
+      }
+      this->mMemblockDevice.writeBlock(following_blockIndexes[blocks_required-2], temp_followingBlock);
+
     }
 
     else{
@@ -269,12 +274,7 @@ int FileSystem::write(std::string fileName, std::string data){
     }
     sizemap[int(temp[1])] = data.length();
 
-    //std::cout << temp[11] << std::endl;
-    //std::cout << temp[12] << std::endl;
-    //std::cout << temp[13] << std::endl;
-    //std::cout << temp[14] << std::endl;
-    //std::cout << temp[15] << std::endl;
-    std::cout << blockIndex << std::endl;
+
     this->mMemblockDevice.writeBlock(blockIndex, temp);
   }
   if (name_is_path){
