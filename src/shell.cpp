@@ -23,6 +23,8 @@ int main(void) {
 	std::string user = "user@DV1492";    // Change this if you want another user to be displayed
 	std::string currentDir = "/";    // current directory, used for output
   std::string output;
+  int returnValue;
+  int privilege = 3;
 
   FileSystem *fileSystem;
     bool bRun = true;
@@ -69,18 +71,18 @@ int main(void) {
                 break;
             case 8: // cp
               {
-                int returnValue = fileSystem->copy(commandArr[1], commandArr[2]);
+                returnValue = fileSystem->copy(commandArr[1], commandArr[2]);
                 if(returnValue == -2){
-                  std::cout << "File does not exist or is Empty" << std::endl;
+                  std::cout << "cp: File does not exist or is Empty" << std::endl;
                 }
                 if (returnValue == -1) {
-                  std::cout << "Path or file does not exist" << std::endl;
+                  std::cout << "cp: Path or file does not exist" << std::endl;
                 }
                 if (returnValue == -3) {
-                  std::cout << "Directory is Full" << std::endl;
+                  std::cout << "cp: Directory is Full" << std::endl;
                 }
                 if (returnValue == -4) {
-                  std::cout << "Filename Already Exists" << std::endl;
+                  std::cout << "cp: Filename Already Exists" << std::endl;
                 }
                 break;
               }
@@ -88,7 +90,17 @@ int main(void) {
                 fileSystem->writeContinue(commandArr[1], commandArr[2]);
                 break;
             case 10: // mv
+            {
+                returnValue = fileSystem->move(commandArr[1], commandArr[2]);
+
+                if(returnValue == -2){
+                  std::cout << "mv: Destination Filename Already Exists" << std::endl;
+                }
+                if (returnValue == -1) {
+                  std::cout << "mv: Path or file does not exist" << std::endl;
+                }
                 break;
+            }
             case 11: // mkdir
                 fileSystem->createFolder(commandArr[1]);
                 break;
@@ -97,7 +109,7 @@ int main(void) {
                   currentDir = fileSystem->getCurrentPath();
                 }
                 else{
-                  std::cout << "Directory not found" << std::endl;
+                  std::cout << "cd: Directory not found" << std::endl;
                 }
                 break;
             case 13: // pwd

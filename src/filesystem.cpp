@@ -338,7 +338,7 @@ int FileSystem::writeContinue(std::string fileOne, std::string fileTwo, int priv
 std::string FileSystem::read(std::string fileName, int privilege){
   std::string start = "";
   std::string path;
-  std::string returnValue = "";
+  std::string returnValue = "cat: " + fileName + ": No such file";
   bool name_is_path = contains_slash(fileName);
   if (name_is_path){
     start = this->getCurrentPath();
@@ -346,7 +346,8 @@ std::string FileSystem::read(std::string fileName, int privilege){
     fileName = fileName.substr(fileName.find_last_of('/')+1);
     this->changeDir(path);
   }
-  if (start != this->getCurrentPath()) {
+  if (start != this->getCurrentPath() && (getIndex(fileName) != -1) ) {
+    returnValue = "";
     int blockIndex = int(this->currentDir[getIndex(fileName)]);
     int fileSize = sizemap[int(this->mMemblockDevice[blockIndex][1])];
     int nrOfBlocks = (fileSize/500) + 1;
@@ -369,6 +370,55 @@ std::string FileSystem::read(std::string fileName, int privilege){
   }
   if (name_is_path){
     this->changeDir(start);
+  }
+  return returnValue;
+}
+
+int FileSystem::move(std::string source, std::string destination, int privilege){
+  int returnValue;
+  std::string start = this->getCurrentPath();
+  bool sourceExists = false;
+  bool destinationExists = false;
+
+  if (contains_slash(source)){
+    this->changeDir(source.substr(0, source.find_last_of('/') ) );
+    if (getIndex(source.substr(source.find_last_of('/')+1)) != -1){
+      sourceExists = true;
+    }
+    this->changeDir(start);
+  }
+  else{
+    if (getIndex(source) != -1){
+      sourceExists = true;
+    }
+  }
+
+  if (contains_slash(destination)){
+    destinationExists = this->changeDir(destination.substr(0, destination.find_last_of('/')));
+    //std::cout << destination.substr(0, destination.find_last_of('/')) << std::endl;
+    if(getIndex(destination.substr(destination.find_last_of('/')+1)) != -1){
+      return -2;
+    }
+    this->changeDir(start);
+  }
+  else{
+    if(getIndex(destination) != -1){
+      return -2;
+    }
+    destinationExists = true;
+  }
+  if (!destinationExists){
+    returnValue = -1;
+  }
+  else if (!sourceExists){
+    returnValue = -1;
+  }
+  else{
+    std::string data = this->read(source);
+    this->remove(source);
+    this->createFile(destination);
+    this->write(destination, data);
+    returnValue = 1;
   }
   return returnValue;
 }

@@ -37,8 +37,12 @@ public:
     int createFolder(std::string name, int privilege = 3);
 
     int write(std::string fileName, std::string data, int privilege = 3);
+
     int writeContinue(std::string fileOne, std::string fileTwo, int privilege = 3);
+
     std::string read(std::string fileName, int privilege = 3);
+
+    int move(std::string source, std::string destination, int privilege = 3);
 
     int copy(std::string source, std::string destination, int privilege = 3);
 
