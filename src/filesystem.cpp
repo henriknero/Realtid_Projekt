@@ -440,6 +440,11 @@ bool FileSystem::changeDir(std::string path){
   int found = 0;
   std::string subDir = path;
   Block tempdir = this->currentDir;
+  if (subDir[0] == '/' && subDir.length() == 1){
+    this->currentDir = this->mMemblockDevice.readBlock(0);
+    subDir = subDir.substr(1);
+    found = 1;
+  }
   if (subDir[0] == '/'){
     this->currentDir = this->mMemblockDevice.readBlock(0);
     subDir = subDir.substr(1);
@@ -472,7 +477,7 @@ bool FileSystem::changeDir(std::string path){
       subDir = "";
     }
     int nrOfEntries = sizemap[int(this->currentDir[1])];
-    for (int i = 11; i < nrOfEntries + 11; i++) {
+    for (int i = 13; i < nrOfEntries + 11; i++) {
       std::string entryName = this->getFileName(this->currentDir[i]);
       int entryBIndex = int(this->currentDir[i]);
       if ((entryName == dirToFind) && (this->mMemblockDevice[entryBIndex][0] == 0)) {
