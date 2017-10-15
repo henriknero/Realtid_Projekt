@@ -1,7 +1,6 @@
 #include "filesystem.h"
 #include <iostream>
 
-//std::string initiation = ''
 
 std::string FileSystem::getFileName(int blockIndex){
   std::string temp = this->mMemblockDevice.readBlock(blockIndex).toString();
@@ -13,7 +12,7 @@ std::string FileSystem::getFileName(int blockIndex){
   }
   return output;
 }
-//hej Hopp (directory index)
+
 int FileSystem::getIndex(std::string name){
   int returnValue = -1;
   std::string temp = this->currentDir.toString();
@@ -86,7 +85,7 @@ int FileSystem::createFile(std::string fileName, int privilege){
     this->changeDir(path);
   }
   if ((!currentDir_is_full()) && (getIndex(fileName) == -1) && (start != this->getCurrentPath())) {
-    returnValue = -3; //-3 = inappropriate filename length, 1 = successfully written to hdd
+    returnValue = -3;
     int blockIndex = -1;
     for (int i = 1; i < 250; i++) {
       if (!bitmap[i]) {
@@ -117,12 +116,9 @@ int FileSystem::createFile(std::string fileName, int privilege){
       }
     }
   }
-
-
   else{
-    returnValue = -4; //Current Directory Full?
+    returnValue = -4;
   }
-
   if (name_is_path){
     this->changeDir(start);
   }
@@ -141,7 +137,7 @@ int FileSystem::createFolder(std::string name, int privilege){
     this->changeDir(path);
   }
   if((!currentDir_is_full()) && (getIndex(name) == -1) && (start != this->getCurrentPath())) {
-    returnValue = -3; //-3 = inappropriate filename length, 1 = successfully written to hdd
+    returnValue = -3;
     int blockIndex = -1;
     for (int i = 1; i < 250; i++) {
       if (!bitmap[i]) {
@@ -188,9 +184,6 @@ int FileSystem::write(std::string fileName, std::string data){
   int returnValue = -1;
   std::string start = "";
   std::string path;
-  //int blocks_required;
-  //int directoryIndex_ofFile;
-  //int blockIndex;
   bool name_is_path = contains_slash(fileName);
   if (name_is_path){
     start = this->getCurrentPath();
@@ -208,10 +201,7 @@ int FileSystem::write(std::string fileName, std::string data){
     int blockIndex = this->currentDir[directoryIndex_ofFile];
     std::string temp = this->mMemblockDevice.readBlock(blockIndex).toString();
 
-
-
     if(blocks_required > 1){
-      //Börja med att se ifall det finns tillräckligt många lediga block för all data.
       int availableBlocks = 0;
       for (int i = 1; i < 250; i++) {
         if (!bitmap[i]) {
@@ -223,7 +213,7 @@ int FileSystem::write(std::string fileName, std::string data){
         blocks_required = availableBlocks+1;
       }
 
-      //Lägger fortsättningsblockens blockIndex i en array.
+      //Lägger indexens hos filens fortsättningsblock i en array
       int following_blockIndexes[blocks_required-1] = {0};
       for (int i = 0; i < blocks_required-1; i++){
         int tempIndex = -1;
@@ -289,7 +279,6 @@ std::string FileSystem::read(std::string fileName){
   std::string start = "";
   std::string path;
   std::string returnValue = "";
-  //int nextBlock = 0;
   bool name_is_path = contains_slash(fileName);
   if (name_is_path){
     start = this->getCurrentPath();
@@ -297,7 +286,6 @@ std::string FileSystem::read(std::string fileName){
     fileName = fileName.substr(fileName.find_last_of('/')+1);
     this->changeDir(path);
   }
-//  do {
     if (start != this->getCurrentPath()) {
       int blockIndex = int(this->currentDir[getIndex(fileName)]);
       int fileSize = sizemap[int(this->mMemblockDevice[blockIndex][1])];
@@ -305,82 +293,23 @@ std::string FileSystem::read(std::string fileName){
       if (fileSize%500 == 0){
         nrOfBlocks--;
       }
-
       for(int i = 0; i < nrOfBlocks; i++){
         for(int j = 12; j < 512; j++){
           returnValue += this->mMemblockDevice[blockIndex][j];
         }
-        //std::cout << returnValue << std::endl;
         blockIndex = this->mMemblockDevice[blockIndex][11];
       }
-
-
       int rest = fileSize%500;
 
       for(int i; i < rest; i++){
         returnValue += this->mMemblockDevice[blockIndex][11];
       }
-
-
     }
-  //  nextBlock = this->mMemblockDevice[entryBIndex][11];
-//    fileSize = fileSize
-//  } while(nextBlock != 0);
-
   if (name_is_path){
     this->changeDir(start);
   }
   return returnValue;
 }
-
-/*
-std::string FileSystem::read(std::string fileName){
-  std::string start = "";
-  std::string path;
-  std::string returnValue = "";
-  int nextBlock = 0;
-  bool name_is_path = contains_slash(fileName);
-  if (name_is_path){
-    start = this->getCurrentPath();
-    path = fileName.substr(0, fileName.find_last_of('/'));
-    fileName = fileName.substr(fileName.find_last_of('/')+1);
-    this->changeDir(path);
-  }
-//  do {
-    if (start != this->getCurrentPath()) {
-      int entryBIndex = int(this->currentDir[getIndex(fileName)]);
-      int fileSize = sizemap[int(this->mMemblockDevice[entryBIndex][1])];
-      int nrOfBlocks = (fileSize/500) + 1;
-      int tempSize = 0;
-      //for (int i = 12; i <(fileSize%500) + 12; i++) {
-      for (int i = 0; i < nrOfBlocks; i++) {
-        int tempSize = 0;
-        if (fileSize > 500) {
-          tempSize = 500;
-        }
-        else{
-          tempSize = fileSize%500;
-        }
-        for (int j = 12; j < tempSize + 12; j++) {
-          returnValue += this->mMemblockDevice[entryBIndex][j];
-        }
-        if (fileSize > 500) {
-          fileSize = fileSize - 500;
-        }
-        entryBIndex = this->mMemblockDevice[entryBIndex][11];
-      }
-    }
-  //  nextBlock = this->mMemblockDevice[entryBIndex][11];
-//    fileSize = fileSize
-//  } while(nextBlock != 0);
-
-  if (name_is_path){
-    this->changeDir(start);
-  }
-  return returnValue;
-}
-*/
-
 
 int FileSystem::remove(std::string name){
 
@@ -414,12 +343,10 @@ int FileSystem::remove(std::string name){
   return returnValue;
 }
 
-//inte klar, fuckar ur
 int FileSystem::removeFile(int directoryIndex_ofFile){
   std::string temp = this->currentDir.toString();
-  //int directoryIndex_ofFile = getIndex(fileName);
   if ((directoryIndex_ofFile != -1) && (sizemap[int(temp[1])] > 2)) { //om filen finns i currentDir
-    //temp[1] är mappens nrOf
+
     int index_of_last_element = 10 + (sizemap[int(temp[1])]);
 
     if(directoryIndex_ofFile != index_of_last_element){
@@ -436,11 +363,9 @@ int FileSystem::removeFile(int directoryIndex_ofFile){
 
 int FileSystem::removeFolder(int directoryIndex_ofDir){
   std::string temp = this->currentDir.toString();
-  //int directoryIndex_ofFile = getIndex(fileName);
   std::string dirToBeRemoved = this->mMemblockDevice.readBlock(int(temp[directoryIndex_ofDir])).toString();
   if (dirToBeRemoved[1] <= 2){
     if ((directoryIndex_ofDir != -1) && (sizemap[int(temp[1])] > 2)) { //om filen finns i currentDir
-      //temp[1] är mappens nrOf
       int index_of_last_element = 10 + (sizemap[int(temp[1])]);
 
       if(directoryIndex_ofDir != index_of_last_element){
@@ -448,7 +373,6 @@ int FileSystem::removeFolder(int directoryIndex_ofDir){
       }
 
       sizemap[int(temp[1])]--;
-      //
       this->mMemblockDevice.writeBlock(int(temp[11]), temp);
       this->currentDir = this->mMemblockDevice.readBlock(int(temp[11]));
     }
@@ -460,13 +384,11 @@ int FileSystem::removeFolder(int directoryIndex_ofDir){
 }
 
 std::string FileSystem::getCurrentPath(){
-  //int start;
   int blockIndex;
   std::string output = "";
   std::string temp_dir_name = "";
   std::string temp_header = this->currentDir.toString();
   blockIndex = int(temp_header[11]);
-  //start = blockIndex;
 
   while(temp_header[11] != 0){
     temp_dir_name = this->getFileName(blockIndex);
@@ -492,14 +414,6 @@ std::string FileSystem::listDir(){
       output += "DIR\t";
     }
 
-
-    /*
-    for (size_t j = 3; j < 11; j++) {
-      if(temp_header[j] != '\0'){
-        output += temp_header[j];
-      }
-    }
-    */
     output += this->getFileName(temp[i]);
     output +="\t";
 
@@ -515,7 +429,6 @@ std::string FileSystem::listDir(){
     }
     output +="\t\t";
     output += std::to_string(int(sizemap[int(temp_header[1])])) + "byte";
-    //std::cout << output << int(temp_header[1]) << "byte" << std::endl;
     output += "\n";
     returnValue += output;
   }
@@ -578,11 +491,3 @@ bool FileSystem::changeDir(std::string path){
   }
   return found;
 }
-/* Please insert your code
-char* Filesystem::readHeader(Block* block){
-  char* temp_header = new char[10];
-  for(int i = 0; i < 10; i++){
-
-  }
-}
-*/
