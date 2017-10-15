@@ -14,6 +14,15 @@ std::string FileSystem::getFileName(int blockIndex){
   return output;
 }
 
+std::string FileSystem::getHeader(int blockIndex){
+  std::string temp = this->mMemblockDevice.readBlock(blockIndex).toString();
+  std::string output = "";
+  for (size_t i = 0; i < 11; i++) {
+    output += temp[i];
+  }
+  return output;
+}
+
 int FileSystem::getIndex(std::string name){
   int returnValue = -1;
   std::string temp = this->currentDir.toString();
@@ -25,14 +34,32 @@ int FileSystem::getIndex(std::string name){
   }
   return returnValue;
 }
-std::string FileSystem::getHeader(int blockIndex){
-  std::string temp = this->mMemblockDevice.readBlock(blockIndex).toString();
-  std::string output = "";
-  for (size_t i = 0; i < 11; i++) {
-    output += temp[i];
+
+int FileSystem::getPrivilege(std::string fileName){
+  int returnValue = -1; //no such file
+  std::string start = "";
+  std::string path;
+
+  bool name_is_path = contains_slash(fileName);
+  if (name_is_path){
+    start = this->getCurrentPath();
+    path = fileName.substr(0, fileName.find_last_of('/'));
+    fileName = fileName.substr(fileName.find_last_of('/')+1);
+    this->changeDir(path);
   }
-  return output;
+
+  int index = getIndex(fileName);
+  if ( index != -1 ){
+    returnValue = this->mMemblockDevice.readBlock(int(this->currentDir[index])).toString()[2];
+  }
+
+  if (name_is_path){
+    this->changeDir(start);
+  }
+
+  return returnValue;
 }
+
 
 int FileSystem::fileOrDir(int blockIndex){
   int flag = this->mMemblockDevice.readBlock(blockIndex).toString()[0];
@@ -224,7 +251,7 @@ int FileSystem::createFolder(std::string name, int privilege){
   return returnValue;
 }
 
-int FileSystem::write(std::string fileName, std::string data, int privilege){
+int FileSystem::write(std::string fileName, std::string data){
   int returnValue = -1;
   std::string start = "";
   std::string path;
@@ -243,7 +270,18 @@ int FileSystem::write(std::string fileName, std::string data, int privilege){
     }
     int directoryIndex_ofFile = getIndex(fileName);
     int blockIndex = this->currentDir[directoryIndex_ofFile];
-    std::string temp = this->mMemblockDevice.readBlock(blockIndex).toString();
+    std::string temp = this->mMemblockDevice[blockIndex].toString();
+
+    std::string privStr = this->mMemblockDevice[blockIndex].toString();
+    privStr = privStr[2];
+    int priv = stoi(privStr);
+
+    if(priv < 2){
+      if (name_is_path){
+        this->changeDir(start);
+      }
+      return -5;
+    }
 
     if(blocks_required > 1){
       int availableBlocks = 0;
@@ -327,18 +365,30 @@ int FileSystem::write(std::string fileName, std::string data, int privilege){
   return returnValue;
 }
 
-int FileSystem::writeContinue(std::string fileOne, std::string fileTwo, int privilege){
-  std::string returnValue = this->read(fileOne) + this->read(fileTwo);
+int FileSystem::append(std::string fileOne, std::string fileTwo){
+
+  int fileTwoPriv = getPrivilege(fileTwo);
+  if( (fileTwoPriv < 2) || (getPrivilege(fileOne)%2 == 1) ){
+    return -5;
+  }
+  else{
+    this->changePrivilege(std::to_string(3), fileTwo);
+  }
+  //std::string fileOneData = this->read(fileOne)
+  std::string data = this->read(fileOne) + this->read(fileTwo);
   this->remove(fileTwo);
   this->createFile(fileTwo);
-  this->write(fileTwo, returnValue);
-  return 1;
+  this->write(fileTwo, data);
+  this->changePrivilege(std::to_string(fileTwoPriv), fileTwo);
+  //return 1;
 }
 
-std::string FileSystem::read(std::string fileName, int privilege){
+std::string FileSystem::read(std::string fileName){
   std::string start = "";
   std::string path;
   std::string returnValue = "cat: " + fileName + ": No such file";
+
+
   bool name_is_path = contains_slash(fileName);
   if (name_is_path){
     start = this->getCurrentPath();
@@ -349,6 +399,16 @@ std::string FileSystem::read(std::string fileName, int privilege){
   if (start != this->getCurrentPath() && (getIndex(fileName) != -1) ) {
     returnValue = "";
     int blockIndex = int(this->currentDir[getIndex(fileName)]);
+    std::string privStr = this->mMemblockDevice.readBlock(blockIndex).toString();
+    privStr = privStr[2];
+    int priv = stoi(privStr);
+    if( (priv%2 == 1 ) ){
+      if (name_is_path){
+        this->changeDir(start);
+      }
+      returnValue = "cat: Insufficient rights";
+      return returnValue;
+    }
     int fileSize = sizemap[int(this->mMemblockDevice[blockIndex][1])];
     int nrOfBlocks = (fileSize/500) + 1;
     if ((fileSize%500 == 0) && (nrOfBlocks > 1)){
@@ -374,22 +434,28 @@ std::string FileSystem::read(std::string fileName, int privilege){
   return returnValue;
 }
 
-int FileSystem::move(std::string source, std::string destination, int privilege){
+int FileSystem::move(std::string source, std::string destination){
   int returnValue;
   std::string start = this->getCurrentPath();
+  int sourceIndex = -1;
   bool sourceExists = false;
   bool destinationExists = false;
+  int privilege;
 
   if (contains_slash(source)){
     this->changeDir(source.substr(0, source.find_last_of('/') ) );
-    if (getIndex(source.substr(source.find_last_of('/')+1)) != -1){
+    sourceIndex = getIndex(source.substr(source.find_last_of('/')+1));
+    if (sourceIndex != -1){
       sourceExists = true;
+      privilege = int(this->mMemblockDevice.readBlock(this->currentDir[sourceIndex]).toString()[2]);
     }
     this->changeDir(start);
   }
   else{
-    if (getIndex(source) != -1){
+    sourceIndex = getIndex(source);
+    if (sourceIndex != -1){
       sourceExists = true;
+      privilege = int(this->mMemblockDevice.readBlock(this->currentDir[sourceIndex]).toString()[2]);
     }
   }
 
@@ -416,29 +482,34 @@ int FileSystem::move(std::string source, std::string destination, int privilege)
   else{
     std::string data = this->read(source);
     this->remove(source);
-    this->createFile(destination);
+    this->createFile(destination, privilege);
     this->write(destination, data);
     returnValue = 1;
   }
   return returnValue;
 }
 
-int FileSystem::copy(std::string source, std::string destination, int privilege){
+int FileSystem::copy(std::string source, std::string destination){
   int returnValue = -2; //Source not found/File empty
+  int privOfFile = getPrivilege(source);
+  //if( (privilege < 1) ){
+  //  return -5;
+  //}
+
   std::string data = read(source);
   if (data != "") {
-    returnValue = createFile(destination);
+    returnValue = createFile(destination, privOfFile);
     //-3 Dir Full
     //-4 Filename already Exists
     if (returnValue != -3 || returnValue != -4) {
       returnValue = write(destination, data);
     }
   }
-  return false;
+  return returnValue;
 
 }
 
-int FileSystem::remove(std::string name, int privilege){
+int FileSystem::remove(std::string name){
   int returnValue = -1;
   std::string start = this->getCurrentPath();
   std::string path;
@@ -522,6 +593,40 @@ int FileSystem::removeFolder(int directoryIndex_ofDir){
   else{
     return 0;
   }
+}
+
+int FileSystem::changePrivilege(std::string privilege, std::string fileName){
+  int returnValue = -1; //no such file
+  std::string start = "";
+  std::string path;
+  int priv = stoi(privilege);
+
+
+  if( (priv < 0) && (priv > 3) ){
+    return -2;
+  }
+
+  bool name_is_path = contains_slash(fileName);
+  if (name_is_path){
+    start = this->getCurrentPath();
+    path = fileName.substr(0, fileName.find_last_of('/'));
+    fileName = fileName.substr(fileName.find_last_of('/')+1);
+    this->changeDir(path);
+  }
+
+  int index = getIndex(fileName);
+  if ( index != -1 ){
+    std::string temp = this->mMemblockDevice.readBlock(int(this->currentDir[index])).toString();
+    temp[2] = priv;
+    this->mMemblockDevice.writeBlock(int(this->currentDir[index]), temp);
+    returnValue = 1;
+  }
+
+  if (name_is_path){
+    this->changeDir(start);
+  }
+
+  return returnValue;
 }
 
 std::string FileSystem::getCurrentPath(){
