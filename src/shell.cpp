@@ -64,8 +64,22 @@ int main(void) {
                 fileSystem->remove(commandArr[1]);
                 break;
             case 8: // cp
-                fileSystem->copy(commandArr[1], commandArr[2]);
+              {
+                int returnValue = fileSystem->copy(commandArr[1], commandArr[2]);
+                if(returnValue == -2){
+                  std::cout << "File does not exist or is Empty" << std::endl;
+                }
+                if (returnValue == -1) {
+                  std::cout << "Path or file does not exist" << std::endl;
+                }
+                if (returnValue == -3) {
+                  std::cout << "Directory is Full" << std::endl;
+                }
+                if (returnValue == -4) {
+                  std::cout << "Filename Already Exists" << std::endl;
+                }
                 break;
+              }
             case 9: // append
                 break;
             case 10: // mv

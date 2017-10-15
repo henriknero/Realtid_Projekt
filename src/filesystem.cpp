@@ -118,7 +118,7 @@ int FileSystem::createFile(std::string fileName, int privilege){
     }
   }
   else{
-    returnValue = -4;
+    returnValue = -4; //FileName already exist
   }
   if (name_is_path){
     this->changeDir(start);
@@ -287,24 +287,24 @@ std::string FileSystem::read(std::string fileName){
     fileName = fileName.substr(fileName.find_last_of('/')+1);
     this->changeDir(path);
   }
-    if (start != this->getCurrentPath()) {
-      int blockIndex = int(this->currentDir[getIndex(fileName)]);
-      int fileSize = sizemap[int(this->mMemblockDevice[blockIndex][1])];
-      int nrOfBlocks = (fileSize/500) +1;
-      if (fileSize%500 == 0){
-        nrOfBlocks--;
-      }
-      for(int i = 0; i < nrOfBlocks - 1; i++){
-        for(int j = 12; j < 512; j++){
-          returnValue += this->mMemblockDevice[blockIndex][j];
-        }
-        blockIndex = this->mMemblockDevice[blockIndex][11];
-      }
-      int rest = fileSize%500;
-      for(int i = 12; i < rest + 12; i++){
-        returnValue += this->mMemblockDevice[blockIndex][i];
-      }
+  if (start != this->getCurrentPath()) {
+    int blockIndex = int(this->currentDir[getIndex(fileName)]);
+    int fileSize = sizemap[int(this->mMemblockDevice[blockIndex][1])];
+    int nrOfBlocks = (fileSize/500) +1;
+    if (fileSize%500 == 0){
+      nrOfBlocks--;
     }
+    for(int i = 0; i < nrOfBlocks - 1; i++){
+      for(int j = 12; j < 512; j++){
+        returnValue += this->mMemblockDevice[blockIndex][j];
+      }
+      blockIndex = this->mMemblockDevice[blockIndex][11];
+    }
+    int rest = fileSize%500;
+    for(int i = 12; i < rest + 12; i++){
+      returnValue += this->mMemblockDevice[blockIndex][i];
+    }
+  }
   if (name_is_path){
     this->changeDir(start);
   }
@@ -312,11 +312,17 @@ std::string FileSystem::read(std::string fileName){
 }
 
 
-bool FileSystem::copy(std::string source, std::string destination){
+int FileSystem::copy(std::string source, std::string destination){
+  int returnValue = -2; //Source not found/File empty
   std::string data = read(source);
-  //std::cout << data.length() << std::endl;
-  createFile(destination);
-  write(destination, data);
+  if (data != "") {
+    returnValue = createFile(destination);
+    //-3 Dir Full
+    //-4 Filename already Exists
+    if (returnValue != -3 || returnValue != -4) {
+      returnValue = write(destination, data);
+    }
+  }
   return false;
 
 }
