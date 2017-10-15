@@ -22,10 +22,14 @@ int main(void) {
 	std::string userCommand, commandArr[MAXCOMMANDS];
 	std::string user = "user@DV1492";    // Change this if you want another user to be displayed
 	std::string currentDir = "/";    // current directory, used for output
+  std::string output;
+
   FileSystem *fileSystem;
     bool bRun = true;
 
     do {
+        commandArr[2] = "";
+        commandArr[1] = "";
         std::cout << user << ":" << currentDir << "$ ";
         getline(std::cin, userCommand);
 
@@ -42,9 +46,7 @@ int main(void) {
                 fileSystem = new FileSystem();
                 break;
             case 2: // ls
-                std::cout << "Listing directory" << std::endl;
-                std::cout << "Type\tName\tPermissions\tSize" << std::endl;
-                std::cout << fileSystem->listDir() << std::endl;
+                std::cout << fileSystem->listDir(commandArr[1]) << std::endl;
                 break;
             case 3: // create
                 if(fileSystem->createFile(commandArr[1]) == 1){
@@ -83,6 +85,7 @@ int main(void) {
                 break;
               }
             case 9: // append
+                fileSystem->writeContinue(commandArr[1], commandArr[2]);
                 break;
             case 10: // mv
                 break;

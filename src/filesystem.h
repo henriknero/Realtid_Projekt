@@ -36,12 +36,13 @@ public:
     /* Creates a folder in the filesystem */
     int createFolder(std::string name, int privilege = 3);
 
-    int write(std::string fileName, std::string data);
-    std::string read(std::string fileName);
+    int write(std::string fileName, std::string data, int privilege = 3);
+    int writeContinue(std::string fileOne, std::string fileTwo, int privilege = 3);
+    std::string read(std::string fileName, int privilege = 3);
 
-    int copy(std::string source, std::string destination);
+    int copy(std::string source, std::string destination, int privilege = 3);
 
-    int remove(std::string name);
+    int remove(std::string name, int privilege = 3);
     /* Removes a file in the filesystem */
     int removeFile(int directoryIndex_ofFile);
 
@@ -52,7 +53,7 @@ public:
     std::string getCurrentPath();
 
     /* This function will get all the files and folders in the specified folder */
-    std::string listDir();
+    std::string listDir(std::string path = "");
     /* Function will move the current location to a specified location in the filesystem */
     bool changeDir(std::string path);
     /* Add your own member-functions if needed */
