@@ -64,6 +64,7 @@ int main(void) {
                 fileSystem->remove(commandArr[1]);
                 break;
             case 8: // cp
+                fileSystem->copy(commandArr[1], commandArr[2]);
                 break;
             case 9: // append
                 break;

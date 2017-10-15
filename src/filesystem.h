@@ -38,6 +38,8 @@ public:
     int write(std::string fileName, std::string data);
     std::string read(std::string fileName);
 
+    bool copy(std::string source, std::string destination);
+
     int remove(std::string name);
     /* Removes a file in the filesystem */
     int removeFile(int directoryIndex_ofFile);
