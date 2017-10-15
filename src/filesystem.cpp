@@ -54,6 +54,7 @@ FileSystem::FileSystem() {
 
   this->mMemblockDevice = MemBlockDevice();
   std::string temp = (this->mMemblockDevice.readBlock(0)).toString();
+  std::cout << sizeof(this->mMemblockDevice.readBlock(0)) << std::endl;
   temp[0] = 0; //F/D flagga
   temp[1] = 0; //self blockIndex
   temp[2] = 3; // read/write
@@ -82,9 +83,6 @@ bool FileSystem::createImage(std::string filepath){
   for (size_t x = 0; x < 250; x++) {
     backup.write((char*)&sizemap[x], sizeof(sizemap[x]));
   }
-  // for (size_t x = 0; x < 250; x++) {
-  //   backup.write((char*)&this->mMemblockDevice.readBlock(x), sizeof(Block))
-  // }
 
   backup.close();
 }
@@ -98,17 +96,6 @@ bool FileSystem::restoreImage(std::string filepath){
     for (size_t x = 0; x < 250; x++) {
       backup.read((char*)&sizemap[x], sizeof(sizemap[x]));
     }
-
-    /*for (size_t x = 0; x < 250; x++) {
-      std::string line;
-      getline(backup, line);
-      bitmap[x] = stoi(line);
-    }
-    for (size_t x = 0; x < 250; x++) {
-      std::string line;
-      getline(backup, line);
-      sizemap[x] = stoi(line);
-    }*/
     backup.close();
     return true;
   }
