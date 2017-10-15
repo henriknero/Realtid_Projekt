@@ -54,7 +54,6 @@ FileSystem::FileSystem() {
 
   this->mMemblockDevice = MemBlockDevice();
   std::string temp = (this->mMemblockDevice.readBlock(0)).toString();
-  std::cout << sizeof(this->mMemblockDevice.readBlock(0)) << std::endl;
   temp[0] = 0; //F/D flagga
   temp[1] = 0; //self blockIndex
   temp[2] = 3; // read/write
@@ -64,6 +63,7 @@ FileSystem::FileSystem() {
   temp[12] = 0; // .. = link to parentDir
 
   this->mMemblockDevice.writeBlock(0, temp);
+  std::cout << temp.length() << std::endl;
   bitmap[0] = true;
   sizemap[0] = 2;
   this->currentDir = this->mMemblockDevice.readBlock(0);
@@ -83,7 +83,12 @@ bool FileSystem::createImage(std::string filepath){
   for (size_t x = 0; x < 250; x++) {
     backup.write((char*)&sizemap[x], sizeof(sizemap[x]));
   }
-
+  for (size_t x = 0; x < 250; x++) {
+    for (size_t y = 0; y < 512; y++) {
+      char temp_char = this->mMemblockDevice[x][y];
+      backup.write((char*)&temp_char, sizeof(temp_char));
+    }
+  }
   backup.close();
 }
 bool FileSystem::restoreImage(std::string filepath){
@@ -95,6 +100,15 @@ bool FileSystem::restoreImage(std::string filepath){
     }
     for (size_t x = 0; x < 250; x++) {
       backup.read((char*)&sizemap[x], sizeof(sizemap[x]));
+    }
+    for (size_t x = 0; x < 250; x++) {
+      std::string temp_string;
+      for (size_t y = 0; y < 512; y++) {
+        char temp_char;
+        backup.read((char*)&temp_char,1);
+        temp_string += temp_char;
+      }
+      this->mMemblockDevice.writeBlock(x,temp_string);
     }
     backup.close();
     return true;
