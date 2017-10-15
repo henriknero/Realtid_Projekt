@@ -1,6 +1,6 @@
 #include "filesystem.h"
 #include <iostream>
-#include <math.h>
+#include <fstream>
 
 
 std::string FileSystem::getFileName(int blockIndex){
@@ -72,7 +72,50 @@ FileSystem::FileSystem() {
 FileSystem::~FileSystem() {
 
 }
+bool FileSystem::createImage(std::string filepath){
+  std::ofstream backup (filepath, std::ofstream::binary);
 
+  for (size_t x = 0; x < 250; x++) {
+    backup.write((char*)&bitmap[x], sizeof(bitmap[x]));
+    //backup << std::to_string(bitmap[x]) + "\n";
+  }
+  for (size_t x = 0; x < 250; x++) {
+    backup.write((char*)&sizemap[x], sizeof(sizemap[x]));
+  }
+  // for (size_t x = 0; x < 250; x++) {
+  //   backup.write((char*)&this->mMemblockDevice.readBlock(x), sizeof(Block))
+  // }
+
+  backup.close();
+}
+bool FileSystem::restoreImage(std::string filepath){
+  std::ifstream backup (filepath, std::ifstream::binary);
+  if (backup.is_open()) {
+    for (size_t x = 0; x < 250; x++) {
+      backup.read((char*)&bitmap[x], sizeof(bitmap[x]));
+
+    }
+    for (size_t x = 0; x < 250; x++) {
+      backup.read((char*)&sizemap[x], sizeof(sizemap[x]));
+    }
+
+    /*for (size_t x = 0; x < 250; x++) {
+      std::string line;
+      getline(backup, line);
+      bitmap[x] = stoi(line);
+    }
+    for (size_t x = 0; x < 250; x++) {
+      std::string line;
+      getline(backup, line);
+      sizemap[x] = stoi(line);
+    }*/
+    backup.close();
+    return true;
+  }
+  else{
+    return false;
+  }
+}
 int FileSystem::createFile(std::string fileName, int privilege){
   int returnValue = -3;
   std::string start = "";
@@ -311,7 +354,6 @@ std::string FileSystem::read(std::string fileName){
   return returnValue;
 }
 
-
 int FileSystem::copy(std::string source, std::string destination){
   int returnValue = -2; //Source not found/File empty
   std::string data = read(source);
@@ -326,6 +368,7 @@ int FileSystem::copy(std::string source, std::string destination){
   return false;
 
 }
+
 int FileSystem::remove(std::string name){
 
   int blockIndex;

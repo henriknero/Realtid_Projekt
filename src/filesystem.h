@@ -27,7 +27,8 @@ public:
     /* These API functions need to be implemented
 	   You are free to specify parameter lists and return values
     */
-
+    bool createImage(std::string filepath);
+    bool restoreImage(std::string filepath);
     /* This function creates a file in the filesystem */
     int createFile(std::string fileName, int privilege = 3);
 

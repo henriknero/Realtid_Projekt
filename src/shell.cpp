@@ -57,8 +57,10 @@ int main(void) {
                 std::cout << fileSystem->read(commandArr[1]) << std::endl;
                 break;
             case 5: // createImage
+                fileSystem->createImage(commandArr[1]);
                 break;
             case 6: // restoreImage
+                fileSystem->restoreImage(commandArr[1]);
                 break;
             case 7: // rm
                 fileSystem->remove(commandArr[1]);
