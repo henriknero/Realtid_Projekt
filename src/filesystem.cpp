@@ -185,6 +185,7 @@ int FileSystem::createFolder(std::string name, int privilege){
 }
 
 int FileSystem::write(std::string fileName, std::string data){
+  int returnValue = -1;
   std::string start = "";
   std::string path;
   //int blocks_required;
@@ -198,6 +199,7 @@ int FileSystem::write(std::string fileName, std::string data){
     this->changeDir(path);
   }
   if (start != this->getCurrentPath()) {
+    returnValue = 1;
     int blocks_required = (data.length() / 500) + 1 ;
     if(data.length() % 500 == 0){
       blocks_required--;
@@ -280,6 +282,7 @@ int FileSystem::write(std::string fileName, std::string data){
   if (name_is_path){
     this->changeDir(start);
   }
+  return returnValue;
 }
 
 std::string FileSystem::read(std::string fileName){
