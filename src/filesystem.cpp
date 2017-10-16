@@ -48,9 +48,9 @@ int FileSystem::getPrivilege(std::string fileName){
     this->changeDir(path);
   }
 
-  int index = getIndex(fileName);
-  if ( index != -1 ){
-    returnValue = this->mMemblockDevice.readBlock(int(this->currentDir[index])).toString()[2];
+  int blockIndex = int(this->currentDir[getIndex(fileName)]);
+  if ( blockIndex != -1 ){
+    returnValue = int(this->mMemblockDevice[blockIndex][2]);
   }
 
   if (name_is_path){
@@ -116,6 +116,7 @@ bool FileSystem::createImage(std::string filepath){
   backup.close();
 }
 bool FileSystem::restoreImage(std::string filepath){
+  bool returnValue = false;
   std::ifstream backup (filepath, std::ifstream::binary);
   if (backup.is_open()) {
     for (size_t x = 0; x < 250; x++) {
@@ -125,23 +126,10 @@ bool FileSystem::restoreImage(std::string filepath){
     for (size_t x = 0; x < 250; x++) {
       backup.read((char*)&sizemap[x], sizeof(sizemap[x]));
     }
-
-    /*for (size_t x = 0; x < 250; x++) {
-      std::string line;
-      getline(backup, line);
-      bitmap[x] = stoi(line);
-    }
-    for (size_t x = 0; x < 250; x++) {
-      std::string line;
-      getline(backup, line);
-      sizemap[x] = stoi(line);
-    }*/
     backup.close();
-    return true;
+    returnValue = true;
   }
-  else{
-    return false;
-  }
+  return returnValue;
 }
 int FileSystem::createFile(std::string fileName, int privilege){
   int returnValue = -3;
@@ -273,8 +261,8 @@ int FileSystem::write(std::string fileName, std::string data){
     std::string temp = this->mMemblockDevice[blockIndex].toString();
 
     std::string privStr = this->mMemblockDevice[blockIndex].toString();
-    privStr = privStr[2];
-    int priv = stoi(privStr);
+    char privChar = privStr[2];
+    int priv = int(privChar);
 
     if(priv < 2){
       if (name_is_path){
@@ -399,10 +387,9 @@ std::string FileSystem::read(std::string fileName){
   if (start != this->getCurrentPath() && (getIndex(fileName) != -1) ) {
     returnValue = "";
     int blockIndex = int(this->currentDir[getIndex(fileName)]);
-    std::string privStr = this->mMemblockDevice.readBlock(blockIndex).toString();
-    privStr = privStr[2];
-    int priv = stoi(privStr);
-    if( (priv%2 == 1 ) ){
+    char privChar = this->mMemblockDevice[blockIndex][2];
+    int priv = int(privChar);
+    if( (priv%2 == 0 ) ){
       if (name_is_path){
         this->changeDir(start);
       }
@@ -492,9 +479,9 @@ int FileSystem::move(std::string source, std::string destination){
 int FileSystem::copy(std::string source, std::string destination){
   int returnValue = -2; //Source not found/File empty
   int privOfFile = getPrivilege(source);
-  //if( (privilege < 1) ){
-  //  return -5;
-  //}
+  if( (privOfFile < 2) ){
+    return -5; //Insufficient Privilege
+  }
 
   std::string data = read(source);
   if (data != "") {
