@@ -3,11 +3,11 @@
 #include "filesystem.h"
 
 const int MAXCOMMANDS = 8;
-const int NUMAVAILABLECOMMANDS = 15;
+const int NUMAVAILABLECOMMANDS = 16;
 
 std::string availableCommands[NUMAVAILABLECOMMANDS] = {
     "quit","format","ls","create","cat","createImage","restoreImage",
-    "rm","cp","append","mv","mkdir","cd","pwd","help"
+    "rm","cp","append","mv","mkdir","cd","pwd","help","chmod"
 };
 
 /* Takes usercommand from input and returns number of commands, commands are stored in strArr[] */
@@ -20,12 +20,17 @@ std::string help();
 
 int main(void) {
 	std::string userCommand, commandArr[MAXCOMMANDS];
-	std::string user = "user@DV1492";    // Change this if you want another user to be displayed
+	std::string user = "HenrikNero+JohanNaslund";    // Change this if you want another user to be displayed
 	std::string currentDir = "/";    // current directory, used for output
+  std::string output;
+  int returnValue;
+
   FileSystem *fileSystem;
     bool bRun = true;
 
     do {
+        commandArr[2] = "";
+        commandArr[1] = "";
         std::cout << user << ":" << currentDir << "$ ";
         getline(std::cin, userCommand);
 
@@ -42,9 +47,7 @@ int main(void) {
                 fileSystem = new FileSystem();
                 break;
             case 2: // ls
-                std::cout << "Listing directory" << std::endl;
-                std::cout << "Type\tName\tPermissions\tSize" << std::endl;
-                std::cout << fileSystem->listDir() << std::endl;
+                std::cout << fileSystem->listDir(commandArr[1]) << std::endl;
                 break;
             case 3: // create
                 if(fileSystem->createFile(commandArr[1]) == 1){
@@ -67,25 +70,46 @@ int main(void) {
                 break;
             case 8: // cp
               {
-                int returnValue = fileSystem->copy(commandArr[1], commandArr[2]);
+                returnValue = fileSystem->copy(commandArr[1], commandArr[2]);
                 if(returnValue == -2){
-                  std::cout << "File does not exist or is Empty" << std::endl;
+                  std::cout << "cp: File does not exist or is Empty" << std::endl;
                 }
                 if (returnValue == -1) {
-                  std::cout << "Path or file does not exist" << std::endl;
+                  std::cout << "cp: Path or file does not exist" << std::endl;
                 }
                 if (returnValue == -3) {
-                  std::cout << "Directory is Full" << std::endl;
+                  std::cout << "cp: Directory is Full" << std::endl;
                 }
                 if (returnValue == -4) {
-                  std::cout << "Filename Already Exists" << std::endl;
+                  std::cout << "cp: Filename Already Exists" << std::endl;
+                }
+                if (returnValue == -5){
+                  std::cout << "cp: Insufficient rights" << std::endl;
                 }
                 break;
               }
             case 9: // append
+                returnValue = fileSystem->append(commandArr[1], commandArr[2]);
+                if (returnValue == -1) {
+                  std::cout << "append: Path or file does not exist" << std::endl;
+                }
+                if (returnValue == -5){
+                  std::cout << "append: Insufficient rights" << std::endl;
+                }
+
                 break;
             case 10: // mv
+            {
+                returnValue = fileSystem->move(commandArr[1], commandArr[2]);
+
+                if(returnValue == -2){
+                  std::cout << "mv: Destination Filename Already Exists" << std::endl;
+                }
+                if (returnValue == -1) {
+                  std::cout << "mv: Path or file does not exist" << std::endl;
+                }
                 break;
+            }
             case 11: // mkdir
                 fileSystem->createFolder(commandArr[1]);
                 break;
@@ -94,7 +118,7 @@ int main(void) {
                   currentDir = fileSystem->getCurrentPath();
                 }
                 else{
-                  std::cout << "Directory not found" << std::endl;
+                  std::cout << "cd: Directory not found" << std::endl;
                 }
                 break;
             case 13: // pwd
@@ -103,6 +127,16 @@ int main(void) {
             case 14: // help
                 std::cout << help() << std::endl;
                 break;
+            case 15: // chmod
+                returnValue = fileSystem->changePrivilege(commandArr[1], commandArr[2]);
+                if (returnValue == -1){
+                  std::cout << "chmod: Path or file does not exist" << std::endl;
+                }
+                if (returnValue == -2){
+                  std::cout << "chmod: incorrect privilege: Privilege codes allowed: 0, 1, 2, or 3" << std::endl;
+                }
+                break;
+
             default:
                 std::cout << "Unknown command: " << commandArr[0] << std::endl;
             }
@@ -158,6 +192,7 @@ std::string help() {
     helpStr += "* cd     <directory>:               Changes current working directory to <directory>\n";
     helpStr += "* pwd:                              Get current working directory\n";
     helpStr += "* help:                             Prints this help screen\n";
+    helpStr += "* chmod <accessrights> <filepath>:  Changes the access rights (0-3) of <filepath>\n";
     return helpStr;
 }
 

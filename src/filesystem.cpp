@@ -14,6 +14,15 @@ std::string FileSystem::getFileName(int blockIndex){
   return output;
 }
 
+std::string FileSystem::getHeader(int blockIndex){
+  std::string temp = this->mMemblockDevice.readBlock(blockIndex).toString();
+  std::string output = "";
+  for (size_t i = 0; i < 11; i++) {
+    output += temp[i];
+  }
+  return output;
+}
+
 int FileSystem::getIndex(std::string name){
   int returnValue = -1;
   std::string temp = this->currentDir.toString();
@@ -25,14 +34,32 @@ int FileSystem::getIndex(std::string name){
   }
   return returnValue;
 }
-std::string FileSystem::getHeader(int blockIndex){
-  std::string temp = this->mMemblockDevice.readBlock(blockIndex).toString();
-  std::string output = "";
-  for (size_t i = 0; i < 11; i++) {
-    output += temp[i];
+
+int FileSystem::getPrivilege(std::string fileName){
+  int returnValue = -1; //no such file
+  std::string start = "";
+  std::string path;
+
+  bool name_is_path = contains_slash(fileName);
+  if (name_is_path){
+    start = this->getCurrentPath();
+    path = fileName.substr(0, fileName.find_last_of('/'));
+    fileName = fileName.substr(fileName.find_last_of('/')+1);
+    this->changeDir(path);
   }
-  return output;
+
+  int blockIndex = int(this->currentDir[getIndex(fileName)]);
+  if ( blockIndex != -1 ){
+    returnValue = int(this->mMemblockDevice[blockIndex][2]);
+  }
+
+  if (name_is_path){
+    this->changeDir(start);
+  }
+
+  return returnValue;
 }
+
 
 int FileSystem::fileOrDir(int blockIndex){
   int flag = this->mMemblockDevice.readBlock(blockIndex).toString()[0];
@@ -92,6 +119,7 @@ bool FileSystem::createImage(std::string filepath){
   backup.close();
 }
 bool FileSystem::restoreImage(std::string filepath){
+  bool returnValue = false;
   std::ifstream backup (filepath, std::ifstream::binary);
   if (backup.is_open()) {
     for (size_t x = 0; x < 250; x++) {
@@ -111,11 +139,9 @@ bool FileSystem::restoreImage(std::string filepath){
       this->mMemblockDevice.writeBlock(x,temp_string);
     }
     backup.close();
-    return true;
+    returnValue = true;
   }
-  else{
-    return false;
-  }
+  return returnValue;
 }
 int FileSystem::createFile(std::string fileName, int privilege){
   int returnValue = -3;
@@ -239,12 +265,23 @@ int FileSystem::write(std::string fileName, std::string data){
   if (start != this->getCurrentPath()) {
     returnValue = 1;
     int blocks_required = (data.length() / 500) + 1 ;
-    if(data.length() % 500 == 0){
+    if((data.length() % 500 == 0) && (blocks_required > 1)){
       blocks_required--;
     }
     int directoryIndex_ofFile = getIndex(fileName);
     int blockIndex = this->currentDir[directoryIndex_ofFile];
-    std::string temp = this->mMemblockDevice.readBlock(blockIndex).toString();
+    std::string temp = this->mMemblockDevice[blockIndex].toString();
+
+    std::string privStr = this->mMemblockDevice[blockIndex].toString();
+    char privChar = privStr[2];
+    int priv = int(privChar);
+
+    if(priv < 2){
+      if (name_is_path){
+        this->changeDir(start);
+      }
+      return -5;
+    }
 
     if(blocks_required > 1){
       int availableBlocks = 0;
@@ -283,9 +320,14 @@ int FileSystem::write(std::string fileName, std::string data){
         this->mMemblockDevice.writeBlock(following_blockIndexes[i], temp_followingBlock);
       }
 
+      temp_followingBlock = this->mMemblockDevice.readBlock(following_blockIndexes[blocks_required-2]).toString();
+      temp_followingBlock[11] = 0;
+      this->mMemblockDevice.writeBlock(following_blockIndexes[blocks_required-2], temp_followingBlock);
+
       for (int i = 12; i < 512; i++){
         temp[i] = data[i -12];
       }
+      //this->mMemblockDevice.writeBlock(blockIndex, temp);
 
       for (int i = 0; i < blocks_required-2; i++){
         temp_followingBlock = this->mMemblockDevice.readBlock(following_blockIndexes[i]).toString();
@@ -296,6 +338,9 @@ int FileSystem::write(std::string fileName, std::string data){
       }
 
       int rest = data.length() % 500;
+      if ((data.length() > 0) && (rest == 0)){
+        rest = 500;
+      }
       temp_followingBlock = this->mMemblockDevice.readBlock(following_blockIndexes[blocks_required-2]).toString();
       for (int i = 0; i < rest; i++){
         temp_followingBlock[i+12] = data[i + ((blocks_required-1)*500)];
@@ -320,10 +365,30 @@ int FileSystem::write(std::string fileName, std::string data){
   return returnValue;
 }
 
+int FileSystem::append(std::string fileOne, std::string fileTwo){
+
+  int fileTwoPriv = getPrivilege(fileTwo);
+  if( (fileTwoPriv < 2) || (getPrivilege(fileOne)%2 == 1) ){
+    return -5;
+  }
+  else{
+    this->changePrivilege(std::to_string(3), fileTwo);
+  }
+  //std::string fileOneData = this->read(fileOne)
+  std::string data = this->read(fileOne) + this->read(fileTwo);
+  this->remove(fileTwo);
+  this->createFile(fileTwo);
+  this->write(fileTwo, data);
+  this->changePrivilege(std::to_string(fileTwoPriv), fileTwo);
+  //return 1;
+}
+
 std::string FileSystem::read(std::string fileName){
   std::string start = "";
   std::string path;
-  std::string returnValue = "";
+  std::string returnValue = "cat: " + fileName + ": No such file";
+
+
   bool name_is_path = contains_slash(fileName);
   if (name_is_path){
     start = this->getCurrentPath();
@@ -331,11 +396,21 @@ std::string FileSystem::read(std::string fileName){
     fileName = fileName.substr(fileName.find_last_of('/')+1);
     this->changeDir(path);
   }
-  if (start != this->getCurrentPath()) {
+  if (start != this->getCurrentPath() && (getIndex(fileName) != -1) ) {
+    returnValue = "";
     int blockIndex = int(this->currentDir[getIndex(fileName)]);
+    char privChar = this->mMemblockDevice[blockIndex][2];
+    int priv = int(privChar);
+    if( (priv%2 == 0 ) ){
+      if (name_is_path){
+        this->changeDir(start);
+      }
+      returnValue = "cat: Insufficient rights";
+      return returnValue;
+    }
     int fileSize = sizemap[int(this->mMemblockDevice[blockIndex][1])];
-    int nrOfBlocks = (fileSize/500) +1;
-    if (fileSize%500 == 0){
+    int nrOfBlocks = (fileSize/500) + 1;
+    if ((fileSize%500 == 0) && (nrOfBlocks > 1)){
       nrOfBlocks--;
     }
     for(int i = 0; i < nrOfBlocks - 1; i++){
@@ -345,6 +420,9 @@ std::string FileSystem::read(std::string fileName){
       blockIndex = this->mMemblockDevice[blockIndex][11];
     }
     int rest = fileSize%500;
+    if ((fileSize > 0) && (rest == 0)){
+      rest = 500;
+    }
     for(int i = 12; i < rest + 12; i++){
       returnValue += this->mMemblockDevice[blockIndex][i];
     }
@@ -355,24 +433,82 @@ std::string FileSystem::read(std::string fileName){
   return returnValue;
 }
 
+int FileSystem::move(std::string source, std::string destination){
+  int returnValue;
+  std::string start = this->getCurrentPath();
+  int sourceIndex = -1;
+  bool sourceExists = false;
+  bool destinationExists = false;
+  int privilege;
+
+  if (contains_slash(source)){
+    this->changeDir(source.substr(0, source.find_last_of('/') ) );
+    sourceIndex = getIndex(source.substr(source.find_last_of('/')+1));
+    if (sourceIndex != -1){
+      sourceExists = true;
+      privilege = int(this->mMemblockDevice.readBlock(this->currentDir[sourceIndex]).toString()[2]);
+    }
+    this->changeDir(start);
+  }
+  else{
+    sourceIndex = getIndex(source);
+    if (sourceIndex != -1){
+      sourceExists = true;
+      privilege = int(this->mMemblockDevice.readBlock(this->currentDir[sourceIndex]).toString()[2]);
+    }
+  }
+
+  if (contains_slash(destination)){
+    destinationExists = this->changeDir(destination.substr(0, destination.find_last_of('/')));
+    //std::cout << destination.substr(0, destination.find_last_of('/')) << std::endl;
+    if(getIndex(destination.substr(destination.find_last_of('/')+1)) != -1){
+      return -2;
+    }
+    this->changeDir(start);
+  }
+  else{
+    if(getIndex(destination) != -1){
+      return -2;
+    }
+    destinationExists = true;
+  }
+  if (!destinationExists){
+    returnValue = -1;
+  }
+  else if (!sourceExists){
+    returnValue = -1;
+  }
+  else{
+    std::string data = this->read(source);
+    this->remove(source);
+    this->createFile(destination, privilege);
+    this->write(destination, data);
+    returnValue = 1;
+  }
+  return returnValue;
+}
+
 int FileSystem::copy(std::string source, std::string destination){
   int returnValue = -2; //Source not found/File empty
+  int privOfFile = getPrivilege(source);
+  if( (privOfFile < 2) ){
+    return -5; //Insufficient Privilege
+  }
+
   std::string data = read(source);
   if (data != "") {
-    returnValue = createFile(destination);
+    returnValue = createFile(destination, privOfFile);
     //-3 Dir Full
     //-4 Filename already Exists
     if (returnValue != -3 || returnValue != -4) {
       returnValue = write(destination, data);
     }
   }
-  return false;
+  return returnValue;
 
 }
 
 int FileSystem::remove(std::string name){
-
-  int blockIndex;
   int returnValue = -1;
   std::string start = this->getCurrentPath();
   std::string path;
@@ -385,7 +521,7 @@ int FileSystem::remove(std::string name){
   int directoryIndex = getIndex(name);
   if (directoryIndex != -1){
     int flag = fileOrDir(this->currentDir[directoryIndex]);
-    blockIndex = this->currentDir[directoryIndex];
+    //blockIndex = this->currentDir[directoryIndex];
     if (flag == 1){
       returnValue = this->removeFile(directoryIndex);
     }
@@ -393,12 +529,12 @@ int FileSystem::remove(std::string name){
     else if (flag == 0){
       returnValue = this->removeFolder(directoryIndex);
     }
-    bitmap[blockIndex] = false;
 
   }
   if (name_is_path){
     this->changeDir(start);
   }
+
   return returnValue;
 }
 
@@ -408,11 +544,26 @@ int FileSystem::removeFile(int directoryIndex_ofFile){
 
     int index_of_last_element = 10 + (sizemap[int(temp[1])]);
 
+    std::string fileBlockToRemove = this->mMemblockDevice.readBlock(temp[directoryIndex_ofFile]).toString();
+    fileBlockToRemove[3] = '\0';
+    this->mMemblockDevice.writeBlock(fileBlockToRemove[1], fileBlockToRemove);
+
+    bitmap[int(fileBlockToRemove[1])] = false;
+    while (int(fileBlockToRemove[11]) != 0){
+      bitmap[int(fileBlockToRemove[1])] = false;
+      fileBlockToRemove = this->mMemblockDevice.readBlock(fileBlockToRemove[11]).toString();
+    }
+
+
     if(directoryIndex_ofFile != index_of_last_element){
       temp[directoryIndex_ofFile] = temp[index_of_last_element];
     }
 
+
     sizemap[int(temp[1])]--;
+
+
+
     //
     this->mMemblockDevice.writeBlock(int(temp[11]), temp);
     this->currentDir = this->mMemblockDevice.readBlock(int(temp[11]));
@@ -427,6 +578,7 @@ int FileSystem::removeFolder(int directoryIndex_ofDir){
     if ((directoryIndex_ofDir != -1) && (sizemap[int(temp[1])] > 2)) { //om filen finns i currentDir
       int index_of_last_element = 10 + (sizemap[int(temp[1])]);
 
+      bitmap[int(temp[directoryIndex_ofDir])] = false;
       if(directoryIndex_ofDir != index_of_last_element){
         temp[directoryIndex_ofDir] = temp[index_of_last_element];
       }
@@ -440,6 +592,40 @@ int FileSystem::removeFolder(int directoryIndex_ofDir){
   else{
     return 0;
   }
+}
+
+int FileSystem::changePrivilege(std::string privilege, std::string fileName){
+  int returnValue = -1; //no such file
+  std::string start = "";
+  std::string path;
+  int priv = stoi(privilege);
+
+
+  if( (priv < 0) && (priv > 3) ){
+    return -2;
+  }
+
+  bool name_is_path = contains_slash(fileName);
+  if (name_is_path){
+    start = this->getCurrentPath();
+    path = fileName.substr(0, fileName.find_last_of('/'));
+    fileName = fileName.substr(fileName.find_last_of('/')+1);
+    this->changeDir(path);
+  }
+
+  int index = getIndex(fileName);
+  if ( index != -1 ){
+    std::string temp = this->mMemblockDevice.readBlock(int(this->currentDir[index])).toString();
+    temp[2] = priv;
+    this->mMemblockDevice.writeBlock(int(this->currentDir[index]), temp);
+    returnValue = 1;
+  }
+
+  if (name_is_path){
+    this->changeDir(start);
+  }
+
+  return returnValue;
 }
 
 std::string FileSystem::getCurrentPath(){
@@ -460,9 +646,18 @@ std::string FileSystem::getCurrentPath(){
 }
 
 
-std::string FileSystem::listDir(){
+std::string FileSystem::listDir(std::string path){
+  std::string start;
+  if (path != ""){
+    start = this->getCurrentPath();
+    if (!this->changeDir(path)){
+      return ("ls: '" + path + "': No such directory");
+    }
+  }
+
   std::string temp = this->currentDir.toString();
-  std::string returnValue = "";
+
+  std::string returnValue = "Listing directory\nType\tName\tPermissions\tSize\n";
   for (int i = 13; i < int(sizemap[int(temp[1])]) + 11; i++) {
     std::string temp_header = this->mMemblockDevice.readBlock(temp[i]).toString();
     std::string output = "";
@@ -491,6 +686,11 @@ std::string FileSystem::listDir(){
     output += "\n";
     returnValue += output;
   }
+
+  if (path != ""){
+    this->changeDir(start);
+  }
+
   return returnValue;
 }
 

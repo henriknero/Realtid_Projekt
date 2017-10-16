@@ -14,6 +14,7 @@ private:
     std::string getFileName(int blockIndex);
     std::string getHeader(int blockIndex);
     int getIndex(std::string name);
+    int getPrivilege(std::string fileName);
     bool currentDir_is_full(){
       return (sizemap[int(this->currentDir.toString()[1])] > 499);
     }
@@ -37,7 +38,12 @@ public:
     int createFolder(std::string name, int privilege = 3);
 
     int write(std::string fileName, std::string data);
+
+    int append(std::string fileOne, std::string fileTwo);
+
     std::string read(std::string fileName);
+
+    int move(std::string source, std::string destination);
 
     int copy(std::string source, std::string destination);
 
@@ -48,11 +54,12 @@ public:
     /* Removes a folder in the filesystem */
     int removeFolder(int directoryIndex_ofDir);
 
+    int changePrivilege(std::string privilege, std::string fileName);
 
     std::string getCurrentPath();
 
     /* This function will get all the files and folders in the specified folder */
-    std::string listDir();
+    std::string listDir(std::string path = "");
     /* Function will move the current location to a specified location in the filesystem */
     bool changeDir(std::string path);
     /* Add your own member-functions if needed */
