@@ -101,9 +101,14 @@ int main(void) {
             case 10: // mv
             {
                 returnValue = fileSystem->move(commandArr[1], commandArr[2]);
-
+                if (returnValue == -4) {
+                  std::cout << "Destination filename already exists" << std::endl;
+                }
+                if (returnValue == -3) {
+                  std::cout << "Directory is full" << std::endl;
+                }
                 if(returnValue == -2){
-                  std::cout << "mv: Destination Filename Already Exists" << std::endl;
+                  std::cout << "Source file not found or Insufficient privilege" << std::endl;
                 }
                 if (returnValue == -1) {
                   std::cout << "mv: Path or file does not exist" << std::endl;
@@ -143,6 +148,7 @@ int main(void) {
         }
     } while (bRun == true);
     delete fileSystem;
+
     return 0;
 }
 
