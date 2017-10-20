@@ -93,6 +93,12 @@ int main(void) {
                 if (returnValue == -1) {
                   std::cout << "append: Path or file does not exist" << std::endl;
                 }
+                if(returnValue == -2){
+                  std::cout << "append: Source file not found or Insufficient privilege" << std::endl;
+                }
+                if (returnValue == -3) {
+                  std::cout << "append: Directory is full" << std::endl;
+                }
                 if (returnValue == -5){
                   std::cout << "append: Insufficient rights" << std::endl;
                 }
@@ -102,13 +108,13 @@ int main(void) {
             {
                 returnValue = fileSystem->move(commandArr[1], commandArr[2]);
                 if (returnValue == -4) {
-                  std::cout << "Destination filename already exists" << std::endl;
+                  std::cout << "mv: Destination filename already exists" << std::endl;
                 }
                 if (returnValue == -3) {
-                  std::cout << "Directory is full" << std::endl;
+                  std::cout << "mv: Directory is full" << std::endl;
                 }
                 if(returnValue == -2){
-                  std::cout << "Source file not found or Insufficient privilege" << std::endl;
+                  std::cout << "mv: Source file not found or Insufficient privilege" << std::endl;
                 }
                 if (returnValue == -1) {
                   std::cout << "mv: Path or file does not exist" << std::endl;
